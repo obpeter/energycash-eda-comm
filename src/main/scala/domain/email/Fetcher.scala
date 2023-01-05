@@ -26,7 +26,7 @@ class Fetcher {
 
   def persist(msgs: Array[Message]): Array[Message] = {
     msgs.foreach(m => {
-      m.writeTo(new FileOutputStream(new File(s"./inbox/${m.getSubject}-${m.getMessageNumber}-${m.getReceivedDate.toString}.eml")))
+      m.writeTo(new FileOutputStream(new File(s"${Config.emailPersistInbox}/${m.getSubject}-${m.getMessageNumber}-${m.getReceivedDate.toString}.eml")))
     })
     msgs
   }

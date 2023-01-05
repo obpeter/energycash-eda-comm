@@ -12,4 +12,5 @@ object EbMsMessageType extends Enumeration {
   val ENERGY_FILE_RESPONSE: EbMsMessageType.Value = Value("DATEN_CRMSG")
   val ONLINE_REG_ANSWER: EbMsMessageType.Value = Value("ANTWORT_ECON")
   val ONLINE_REG_INIT: EbMsMessageType.Value = Value("ANFORDERUNG_ECON")
+  val ZP_LIST: EbMsMessageType.Value = Value("ANFORDERUNG_ECP")
 }

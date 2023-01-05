@@ -4,10 +4,10 @@ package actor
 import domain.email.Fetcher
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.typed.{ActorRef, Behavior, Scheduler}
 
-import java.util.{Date}
-import scala.concurrent.{Future}
+import java.util.Date
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
 
@@ -30,13 +30,19 @@ object FetchMailManager {
     }
   }
 
+  case class DeleteEmailCommand(messageId: String) extends EmailCommand {
+    def deleteMail(): Unit = {
+      fetcher.deleteById(messageId)
+    }
+  }
+
   def apply(supervisor: ActorRef[Command], messageStore: ActorRef[MessageStorage.Command[_]]): Behavior[Command] = Behaviors.setup[Command] { implicit context =>
 
     val log = context.log
 
-    implicit val ec = context.executionContext
+    implicit val ec: ExecutionContextExecutor = context.executionContext
     implicit val timeout: Timeout = Timeout(5.seconds)
-    implicit val scheduler = context.system.scheduler
+    implicit val scheduler: Scheduler = context.system.scheduler
 
     createQuartzSchedule("[", supervisor)
 
@@ -62,7 +68,9 @@ object FetchMailManager {
         }
         Behaviors.same
       }
-
+      case req: DeleteEmailCommand =>
+        req.deleteMail()
+        Behaviors.same
       case Shutdown =>
         QuartzSchedulerTypedExtension(context.system).shutdown(false)
         Behaviors.stopped

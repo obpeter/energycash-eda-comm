@@ -4,8 +4,8 @@ package domain.eda.message
 import model.EbMsMessage
 
 import at.energydash.domain.util.zip.CRC8
-import at.energydash.model.enums.EbMsMessageType.{ENERGY_FILE_RESPONSE, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT}
-import at.energydash.model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_REGISTER_ONLINE}
+import at.energydash.model.enums.EbMsMessageType.{ENERGY_FILE_RESPONSE, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT, ZP_LIST}
+import at.energydash.model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_LIST_METERINGPOINTS, PROCESS_REGISTER_ONLINE}
 import com.google.common.io.BaseEncoding
 
 import java.text.SimpleDateFormat
@@ -17,6 +17,7 @@ object MessageHelper {
   def getEdaMessageByType(message: EbMsMessage): EdaMessage[_] = {
     message.messageCode match {
       case ONLINE_REG_INIT => CMRequestProcessMessage(message)
+      case ZP_LIST => CPRequestZPListMessage(message)
     }
   }
 
@@ -31,6 +32,14 @@ object MessageHelper {
     processCode match {
       case PROCESS_ENERGY_RESPONSE => ConsumptionRecordMessage
       case PROCESS_REGISTER_ONLINE => CMRequestProcessMessage
+      case PROCESS_LIST_METERINGPOINTS => CPRequestZPListMessage
+    }
+  }
+
+  def EDAMessageCodeToProcessCode(msCode: EbMsMessageType): EbMsProcessType = {
+    msCode match {
+      case ZP_LIST => PROCESS_LIST_METERINGPOINTS
+      case ONLINE_REG_INIT => PROCESS_REGISTER_ONLINE
     }
   }
 

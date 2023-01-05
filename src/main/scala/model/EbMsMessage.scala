@@ -10,6 +10,7 @@ import JsonImplicit._
 case class ResponseData(MeteringPoint: Option[String],
                         ResponseCode: Seq[BigInt])
 
+case class Timeline(from: Date, to: Date)
 case class Meter(meteringPoint: String, direction: Option[MeterDirectionType])
 
 case class EnergyValue(from: Date, to: Option[Date], method: Option[String], value: BigDecimal)
@@ -27,6 +28,7 @@ case class EbMsMessage(
                         ecId: Option[String],                   // Community ID
                         responseData: Option[Seq[ResponseData]],
                         energy: Option[Energy],
+                        timeline: Option[Timeline]
                      )
 
 object JsonImplicit {

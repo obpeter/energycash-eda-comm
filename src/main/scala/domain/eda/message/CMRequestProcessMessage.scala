@@ -97,6 +97,7 @@ object CMRequestProcessMessage extends EdaResponseType {
           None,
           Some(document.ProcessDirectory.ResponseData.map(r => ResponseData(r.MeteringPoint, r.ResponseCode))),
           None,
+          None,
         )
       )
     )

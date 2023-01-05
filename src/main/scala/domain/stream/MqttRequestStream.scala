@@ -13,6 +13,8 @@ import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.typed.scaladsl.ActorFlow
 import akka.util.{ByteString, Timeout}
 import at.energydash.actor.commands.Command
+import at.energydash.domain.eda.message.MessageHelper.EDAMessageCodeToProcessCode
+import at.energydash.domain.util.Config
 import io.circe.parser.decode
 import io.circe.generic.auto._
 import io.circe.syntax._
@@ -45,11 +47,11 @@ class MqttRequestStream(mailService: ActorRef[EmailService.Command],
   val prepareEmailMessageFlow: Flow[EbMsMessage, EmailService.EmailModel, NotUsed] =
     Flow.fromFunction(data => {
       val attachment = MessageHelper.getEdaMessageByType(data).toByte
-      val subject = s"[${data.messageCode} MessageId=${data.messageId}]"
-      val to = s"${data.receiver}@gmail.com"
-      val from = s"${data.sender}@gmail.com"
+      val subject = s"[${EDAMessageCodeToProcessCode(data.messageCode).toString} MessageId=${data.messageId.getOrElse("")}]"
+      val to = s"${data.receiver}@${Config.emailDomain}"
+      val from = s"${data.sender}@${Config.emailDomain}"
 
-      EmailService.EmailModel(toEmail = to,
+      EmailService.EmailModel(fromMail = from, toEmail = to,
         subject = subject, attachment = attachment, data = data)
     })
 
@@ -65,6 +67,10 @@ class MqttRequestStream(mailService: ActorRef[EmailService.Command],
 
     source
       .map(msg => (msg.payload.utf8String))
+      .map(m => {
+        println("####### ", m)
+        m
+      })
       .via(decodingFlow.divertTo(invalidEventsCommitter, _.isLeft).collect { case Right(m) => m })
       .via(prepareMessageFlow)
       .via(prepareEmailMessageFlow)

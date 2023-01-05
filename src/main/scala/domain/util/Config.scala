@@ -26,10 +26,17 @@ object Config {
   lazy val imapUser = imapConfig.getString("user")
   lazy val imapPwd = imapConfig.getString("password")
 
+  lazy val emailPersistInbox = config.getString("epmsmail.mail.inbox")
+  lazy val emailDomain = config.getString("epmsmail.mail.domain")
+
   def getMqttMailConfig: MqttMailConfig = MqttMailConfig(
     config.getString("epmsmail.mqtt.url"),
     config.getString("epmsmail.mqtt.topic"),
     config.getInt("epmsmail.mqtt.qos"),
     config.getString("epmsmail.mqtt.consumer-id")
   )
+
+  lazy val energyTopic = config.getString("epmsmail.mqtt.topics.energyTopic")
+  lazy val cmTopic = config.getString("epmsmail.mqtt.topics.cmTopic")
+  lazy val cpTopic = config.getString("epmsmail.mqtt.topics.cpTopic")
 }

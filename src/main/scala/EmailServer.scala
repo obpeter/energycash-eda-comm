@@ -17,7 +17,7 @@ import akka.stream.scaladsl.{Flow, Keep, Sink}
 import akka.stream.typed.scaladsl.ActorFlow
 import akka.stream.{Attributes, Materializer, SystemMaterializer}
 import akka.util.{ByteString, Timeout}
-import at.energydash.domain.eda.message.{CPRequestMessage, MessageHelper}
+import at.energydash.domain.eda.message.{CPRequestZPListMessage, MessageHelper}
 import at.energydash.model.EbMsMessage
 import scalaxb.Helper
 import xmlprotocol.{ANFORDERUNG_AP, GCRequestAP, GCRequestAP_EXT, MarketParticipantDirectoryType, Number01Value2, ProcessDirectoryType, RoutingAddress, RoutingHeader}
@@ -84,7 +84,7 @@ object EmailServer {
               emailService.tell(
 //              emailService.ask((replyTo: ActorRef[Response]) =>
 //                EmailService.SendEmailCommand(EmailService.EmailModel(toEmail = "obermueller.peter@gmail.com", subject = "[12345678 MessageId=0987654321]", body = "Hallo"), replyTo)
-                EmailService.SendEmailCommand(EmailService.EmailModel(toEmail = data.to,
+                EmailService.SendEmailCommand(EmailService.EmailModel(fromMail = data.from, toEmail = data.to,
                   subject = subject, attachment = attachment, data = data.ebMsMessage), replyTo)
               )
               Behaviors.same
@@ -190,7 +190,7 @@ object EmailServer {
     val myObj = decode[EbMsMessage](jsonObject)
     println(myObj)
     val xmlObj2 = myObj match {
-      case Right(m) => CPRequestMessage(m)
+      case Right(m) => CPRequestZPListMessage(m)
     }
     println(xmlObj2.toXML)
     println("----")

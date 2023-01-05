@@ -95,7 +95,8 @@ object ConsumptionRecordMessage extends EdaResponseType {
               )
             )
           )).head
-          )
+          ),
+          None
         )
       )
     )

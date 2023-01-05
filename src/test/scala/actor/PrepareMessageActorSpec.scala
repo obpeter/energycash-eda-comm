@@ -28,6 +28,7 @@ class PrepareMessageActorSpec extends ScalaTestWithActorTestKit with AnyWordSpec
         None,
         None,
         None,
+        None,
         None
       )
 

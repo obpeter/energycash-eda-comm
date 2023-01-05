@@ -1,7 +1,7 @@
 package at.energydash
 package domain.eda.messages
 
-import at.energydash.domain.eda.message.CPRequestMessage
+import at.energydash.domain.eda.message.CPRequestZPListMessage
 import at.energydash.model.EbMsMessage
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers._
@@ -40,11 +40,20 @@ class CommObjectsSpec extends AnyFlatSpec {
 //  }
 
   "it" should "compile to xml" in {
-    val jsonObject = """{"messageCode":"SENDEN_VDC", "messageId":"rctest202210161905235386216409991", "conversationId":"ectest202210161905235380027488852", "sender":"rctest", "receiver":"ectest"}"""
+    val jsonObject =
+      """{
+        |"messageCode":"ANFORDERUNG_ECP",
+        |"messageId":"rctest202210161905235386216409991",
+        |"conversationId":"ectest202210161905235380027488852",
+        |"sender":"rctest",
+        |"receiver":"ectest",
+        |"meter": {"meteringPoint":"communityId"},
+        |"timeline": {"from": 1672915665000, "to": 1672915665000}
+        |}""".stripMargin
     val message = decode[EbMsMessage](jsonObject)
 
     val obj = message match {
-      case Right(m) => CPRequestMessage(m)
+      case Right(m) => CPRequestZPListMessage(m)
     }
     println(obj.toXML)
 

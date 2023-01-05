@@ -1,3 +1,4 @@
+<!--  Mit XMLSpy v2020 rel. 2 sp1 (x64) (http://www.altova.com) von Illwerke VKW Aktiengesellschaft (illwerke vkw Aktiengesellschaft) bearbeitet  -->
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ct="http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20" xmlns:cp="http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12" targetNamespace="http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12" elementFormDefault="qualified">
     <xsd:import namespace="http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20" schemaLocation="CPCommonTypes_01p20.xsd"/>
     <xsd:annotation>
@@ -35,28 +36,7 @@
         <xsd:complexContent>
             <xsd:extension base="ct:MarketParticipantDirectory">
                 <xsd:sequence>
-                    <xsd:element name="MessageCode">
-                        <xsd:simpleType>
-                            <xsd:restriction base="ct:MessageCode">
-                                <xsd:enumeration value="ANFORDERUNG_IR"/>
-                                <xsd:enumeration value="ANFORDERUNG_GN"/>
-                                <xsd:enumeration value="ANFORDERUNG_LPT"/>
-                                <xsd:enumeration value="ANFORDERUNG_MRD"/>
-                                <xsd:enumeration value="ANFORDERUNG_MDI"/>
-                                <xsd:enumeration value="ANFORDERUNG_MRB"/>
-                                <xsd:enumeration value="ANFORDERUNG_MBI"/>
-                                <xsd:enumeration value="ANFORDERUNG_BIL"/>
-                                <xsd:enumeration value="ANFORDERUNG_GIR"/>
-                                <xsd:enumeration value="ANFORDERUNG_CMI"/>
-                                <xsd:enumeration value="ANFORDERUNG_CBC"/>
-                                <xsd:enumeration value="ANFORDERUNG_APR"/>
-                                <xsd:enumeration value="ANFORDERUNG_DPR"/>
-                                <xsd:enumeration value="ANFORDERUNG_DCS"/>
-                                <xsd:enumeration value="ANFORDERUNG_RCS"/>
-                                <xsd:enumeration value="ANFORDERUNG_PT"/>
-                            </xsd:restriction>
-                        </xsd:simpleType>
-                    </xsd:element>
+                    <xsd:element name="MessageCode" type="ct:MessageCode"/>
                 </xsd:sequence>
                 <xsd:attribute name="SchemaVersion" use="required">
                     <xsd:simpleType>

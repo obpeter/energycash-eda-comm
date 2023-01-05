@@ -26,6 +26,7 @@ class MessageStorageSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
         None,
         None,
         None,
+        None,
         None)
 
       storage ! MessageStorage.AddMessage(message, probe.ref)
@@ -41,6 +42,7 @@ class MessageStorageSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
         "AT100130",
         "RC003000",
         EbMsMessageType.ENERGY_FILE_RESPONSE,
+        None,
         None,
         None,
         None,

@@ -9,35 +9,40 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.ByteString
 import at.energydash.domain.util.Config
 import at.energydash.model.EbMsMessage
+
+import javax.mail.{Session => MailSession}
 import courier._
 
-object EmailService {
-  case class EmailModel(toEmail: String, subject: String, attachment: ByteString, data: EbMsMessage)
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Properties
 
+object EmailService {
+  case class EmailModel(fromMail: String, toEmail: String, subject: String, attachment: ByteString, data: EbMsMessage)
   sealed trait Command
 
   case class SendEmailCommand(email: EmailModel, replyTo: ActorRef[Response]) extends Command {
-
     def sendEmail(email: EmailModel): Future[Unit] = {
       println("About to send Email")
-      val mailer =
-        Mailer(Config.smtpHost, Config.smtpPort)
-          .auth(true)
-          .as(Config.smtpUser, Config.smtpPassword)
-          .startTls(true)()
 
+      val mailer = Mailer(MailSession.getInstance(new Properties())).session
+        .host(Config.smtpHost)
+        .port(Config.smtpPort)
+        .auth(true)
+        .as(Config.smtpUser, Config.smtpPassword)
+        .ssl(true)()
+
+      val myFormatObj = DateTimeFormatter.ofPattern("yyyyMMdd")
       val envelope = Envelope
-        .from(new InternetAddress("sepp.gaug@gmail.com"))
+        .from(new InternetAddress(email.fromMail))
         .to(new InternetAddress(email.toEmail))
         .subject(email.subject)
         .content(Multipart()
-          .attachBytes(email.attachment.toArray, "sepp.xml", "text/xml")
-          .html("Hallo"))
-      //.html("<html><body><h1>IT'S IMPORTANT</h1></body></html>")))
+          .attachBytes(email.attachment.toArray,
+            s"${LocalDateTime.now().format(myFormatObj)}_${email.data.messageCode.toString}_${email.data.sender}.xml", "text/xml")
+          .html(s"Attachment for Process ${email.data.messageCode.toString}"))
       mailer(envelope)
-
     }
-
   }
 
   sealed trait Response
@@ -60,14 +65,13 @@ object EmailService {
                 req.replyTo ! SendEmailResponse(req.email.data)
 
               case Failure(ex) =>
-                println("Error Occured  " + ex.getMessage)
+                log.error("Error Occured  " + ex.getMessage)
                 req.replyTo ! ErrorResponse("Error Occured  " + ex.getMessage)
             }
 
           }
           Behaviors.same
       }
-
     })
 
 }
