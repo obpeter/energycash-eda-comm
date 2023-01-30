@@ -1,41 +1,39 @@
 package at.energydash.domain.email
 
 import javax.mail.internet.InternetAddress
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.ByteString
-import at.energydash.domain.util.Config
+import at.energydash.config.Config
 import at.energydash.model.EbMsMessage
 
-import javax.mail.{Session => MailSession}
 import courier._
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Properties
 
 object EmailService {
-  case class EmailModel(fromMail: String, toEmail: String, subject: String, attachment: ByteString, data: EbMsMessage)
+  case class EmailModel(tenant: String, toEmail: String, subject: String, attachment: ByteString, data: EbMsMessage)
   sealed trait Command
 
-  case class SendEmailCommand(email: EmailModel, replyTo: ActorRef[Response]) extends Command {
-    def sendEmail(email: EmailModel): Future[Unit] = {
+  case class SendEmailCommand(email: EmailModel, mailer: Mailer, replyTo: ActorRef[Response])(implicit ec: ExecutionContext) extends Command {
+    def sendEmail(): Future[Unit] = {
       println("About to send Email")
 
-      val mailer = Mailer(MailSession.getInstance(new Properties())).session
-        .host(Config.smtpHost)
-        .port(Config.smtpPort)
-        .auth(true)
-        .as(Config.smtpUser, Config.smtpPassword)
-        .ssl(true)()
+//      val mailer = Mailer(MailSession.getInstance(new Properties())).session
+//        .host(Config.smtpHost)
+//        .port(Config.smtpPort)
+//        .auth(true)
+//        .as(Config.smtpUser, Config.smtpPassword)
+//        .ssl(true)()
 
       val myFormatObj = DateTimeFormatter.ofPattern("yyyyMMdd")
+      val domain = Config.emailDomain(email.tenant)
       val envelope = Envelope
-        .from(new InternetAddress(email.fromMail))
-        .to(new InternetAddress(email.toEmail))
+        .from(new InternetAddress(s"${email.tenant}@${domain}"))
+        .to(new InternetAddress(s"${email.toEmail}@${domain}"))
         .subject(email.subject)
         .content(Multipart()
           .attachBytes(email.attachment.toArray,
@@ -53,22 +51,19 @@ object EmailService {
 
   def apply(): Behavior[Command] =
     Behaviors.receive({ (context, message) =>
+      implicit val ec = context.executionContext
       val log = context.log
 
       message match {
 
-        case req: SendEmailCommand =>
-          {
-
-            req.sendEmail(req.email).onComplete {
+        case req: SendEmailCommand => {
+            req.sendEmail().onComplete {
               case Success(_) =>
                 req.replyTo ! SendEmailResponse(req.email.data)
-
               case Failure(ex) =>
                 log.error("Error Occured  " + ex.getMessage)
                 req.replyTo ! ErrorResponse("Error Occured  " + ex.getMessage)
             }
-
           }
           Behaviors.same
       }

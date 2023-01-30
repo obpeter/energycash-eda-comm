@@ -4,7 +4,7 @@ package domain.eda.message
 import model.EbMsMessage
 
 import at.energydash.domain.util.zip.CRC8
-import at.energydash.model.enums.EbMsMessageType.{ENERGY_FILE_RESPONSE, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT, ZP_LIST}
+import at.energydash.model.enums.EbMsMessageType.{EEG_BASE_DATA, ENERGY_FILE_RESPONSE, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT, ZP_LIST}
 import at.energydash.model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_LIST_METERINGPOINTS, PROCESS_REGISTER_ONLINE}
 import com.google.common.io.BaseEncoding
 
@@ -18,6 +18,7 @@ object MessageHelper {
     message.messageCode match {
       case ONLINE_REG_INIT => CMRequestProcessMessage(message)
       case ZP_LIST => CPRequestZPListMessage(message)
+      case EEG_BASE_DATA => CPRequestBaseDataMessage(message)
     }
   }
 
@@ -39,6 +40,7 @@ object MessageHelper {
   def EDAMessageCodeToProcessCode(msCode: EbMsMessageType): EbMsProcessType = {
     msCode match {
       case ZP_LIST => PROCESS_LIST_METERINGPOINTS
+      case EEG_BASE_DATA => PROCESS_LIST_METERINGPOINTS
       case ONLINE_REG_INIT => PROCESS_REGISTER_ONLINE
     }
   }

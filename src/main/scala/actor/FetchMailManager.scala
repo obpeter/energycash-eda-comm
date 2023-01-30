@@ -25,14 +25,14 @@ object FetchMailManager {
   case class FetchEmailCommand(subject: String, replyTo: ActorRef[EmailCommand]) extends EmailCommand {
     def fetchEmail(searchTerm: String): Try[List[MailMessage]] = {
       Try(
-        fetcher.fetch(searchTerm)
+        fetcher.fetch("", searchTerm)
       )
     }
   }
 
   case class DeleteEmailCommand(messageId: String) extends EmailCommand {
     def deleteMail(): Unit = {
-      fetcher.deleteById(messageId)
+      fetcher.deleteById("", messageId)
     }
   }
 
@@ -61,6 +61,7 @@ object FetchMailManager {
               } yield mm
             })).onComplete {
               case Success(m) => req.replyTo ! FetchEmailResponse(m)
+              case Failure(e) => println(s".................${e}")
             }
           case Failure(ex) =>
             log.error(ex.getMessage)

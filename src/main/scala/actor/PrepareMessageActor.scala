@@ -36,9 +36,10 @@ object PrepareMessageActor {
       case PrepareMessage(message, replyTo) =>
         val event = IdInkremented(messageId+1)
         val msgId = MessageHelper.buildMessageId(message.sender, event.messageId)
+        val conversationId = MessageHelper.buildMessageId(message.sender, event.messageId+1)
 
         Effect.persist(event).thenReply(replyTo)(_ =>
-          Prepared(message.copy(messageId = Some(msgId), requestId=Some(MessageHelper.buildRequestId(msgId)))))
+          Prepared( message.copy(messageId = Some(msgId), conversationId=conversationId, requestId=Some(MessageHelper.buildRequestId(msgId)))))
     }
   }
 

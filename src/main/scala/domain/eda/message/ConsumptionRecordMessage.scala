@@ -6,15 +6,15 @@ import model.{EbMsMessage, Energy, EnergyData, EnergyValue, Meter, ResponseData}
 import akka.util.ByteString
 import at.energydash.model.enums.EbMsMessageType
 import scalaxb.Helper
-import xmlprotocol.{CMNotification, CMRequest, ConsumptionRecord, ConsumptionRecordVersion, DATEN_CRMSG, DocumentMode, MarketParticipantDirectory, MarketParticipantDirectoryType8, Number01Value2, Number01u4630, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SIMU}
+import xmlprotocol.{CMNotification, CMRequest, ConsumptionRecord, ConsumptionRecordVersion, DATEN_CRMSG, DocumentMode, MarketParticipantDirectory, MarketParticipantDirectoryType2, MarketParticipantDirectoryType8, Number01Value2, Number01u4630, ProcessDirectoryType2, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SIMU}
 
 import java.io.StringWriter
 import java.util.{Calendar, Date}
 import scala.util.Try
-import scala.xml.{Elem, NodeSeq, XML}
+import scala.xml.{Elem, Node, XML}
 
 case class ConsumptionRecordMessage (message: EbMsMessage) extends EdaMessage[CMRequest] {
-  override def toXML: NodeSeq = {
+  override def toXML: Node = {
     import java.util.GregorianCalendar
     import scalaxb.XMLStandardTypes._
 
@@ -26,7 +26,7 @@ case class ConsumptionRecordMessage (message: EbMsMessage) extends EdaMessage[CM
     processCalendar.add(Calendar.DAY_OF_MONTH, 3)
 
     val doc = ConsumptionRecord(
-      MarketParticipantDirectoryType8(
+      MarketParticipantDirectoryType2(
         RoutingHeader(
           RoutingAddress(message.sender),
           RoutingAddress(message.receiver),
@@ -41,7 +41,7 @@ case class ConsumptionRecordMessage (message: EbMsMessage) extends EdaMessage[CM
         )
 
       ),
-      ProcessDirectoryType8(
+      ProcessDirectoryType2(
         message.messageId.get,
         message.conversationId,
         Helper.toCalendar(calendar),
@@ -50,7 +50,7 @@ case class ConsumptionRecordMessage (message: EbMsMessage) extends EdaMessage[CM
     )
 
     scalaxb.toXML[ConsumptionRecord](doc, Some("http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p30"), Some("ConsumptionRecord"),
-      scalaxb.toScope(None -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20"), true)
+      scalaxb.toScope(None -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20"), true).head
   }
 
   override def toByte: ByteString = {
@@ -58,7 +58,7 @@ case class ConsumptionRecordMessage (message: EbMsMessage) extends EdaMessage[CM
     val xml = toXML
 
     val xmlString = new StringWriter()
-    XML.write(xmlString, xml.head, "UTF-8", true, null)
+    XML.write(xmlString, xml, "UTF-8", true, null)
 
     ByteString.fromString(xmlString.toString)
   }
@@ -96,7 +96,8 @@ object ConsumptionRecordMessage extends EdaResponseType {
             )
           )).head
           ),
-          None
+          None,
+          None,
         )
       )
     )

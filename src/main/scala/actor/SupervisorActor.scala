@@ -13,10 +13,10 @@ import akka.stream.typed.scaladsl.ActorSink
 import akka.util.{ByteString, Timeout}
 import at.energydash.actor.FetchMailManager.DeleteEmailCommand
 import at.energydash.actor.commands._
+import at.energydash.config.Config
 import at.energydash.domain.eda.message.{CMRequestProcessMessage, CPRequestZPListMessage, ConsumptionRecordMessage, EdaMessage}
 import at.energydash.domain.mqtt.MqttEmail
 import at.energydash.domain.stream.MqttRequestStream
-import at.energydash.domain.util.Config
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.parser._
