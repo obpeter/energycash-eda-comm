@@ -11,4 +11,7 @@ object MeterDirectionType extends Enumeration {
 
   val CONSUMPTION: MeterDirectionType.Value = Value("CONSUMPTION")
   val GENERATION: MeterDirectionType.Value = Value("GENERATION")
+
+  def withNameWithDefault(name: String): Value =
+    values.find(_.toString.toLowerCase() == name.toLowerCase()).getOrElse(CONSUMPTION)
 }

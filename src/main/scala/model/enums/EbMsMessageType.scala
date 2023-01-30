@@ -13,4 +13,6 @@ object EbMsMessageType extends Enumeration {
   val ONLINE_REG_ANSWER: EbMsMessageType.Value = Value("ANTWORT_ECON")
   val ONLINE_REG_INIT: EbMsMessageType.Value = Value("ANFORDERUNG_ECON")
   val ZP_LIST: EbMsMessageType.Value = Value("ANFORDERUNG_ECP")
+  val ZP_LIST_RESPONSE: EbMsMessageType.Value = Value("SENDEN_ECP")
+  val EEG_BASE_DATA: EbMsMessageType.Value = Value("ANFORDERUNG_GN")
 }

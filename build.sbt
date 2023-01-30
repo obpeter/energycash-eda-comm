@@ -17,6 +17,8 @@ lazy val root = (project in file("."))
 
     idePackagePrefix := Some("at.energydash"),
 
+    resolvers += "repo.jenkins-ci.org" at "https://repo.jenkins-ci.org/releases",
+
     libraryDependencies ++= Seq(
       "com.github.daddykotex" %% "courier" % courierVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
@@ -53,6 +55,7 @@ lazy val root = (project in file("."))
       "org.scalatest" %% "scalatest" % "3.2.14",
       "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion,
+      "org.jvnet.mock-javamail" % "mock-javamail" % "1.12"
     ).map(_ % Test),
 
     libraryDependencies ++= Seq(

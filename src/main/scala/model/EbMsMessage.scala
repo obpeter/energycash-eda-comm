@@ -6,6 +6,7 @@ import at.energydash.model.enums.EbMsMessageType.EbMsMessageType
 
 import java.util.Date
 import JsonImplicit._
+import at.energydash.model.enums.EbMsMessageType
 
 case class ResponseData(MeteringPoint: Option[String],
                         ResponseCode: Seq[BigInt])
@@ -22,13 +23,14 @@ case class EbMsMessage(
                         conversationId: String,
                         sender: String,
                         receiver: String,
-                        messageCode: EbMsMessageType,
-                        requestId: Option[String],
-                        meter: Option[Meter],
-                        ecId: Option[String],                   // Community ID
-                        responseData: Option[Seq[ResponseData]],
-                        energy: Option[Energy],
-                        timeline: Option[Timeline]
+                        messageCode: EbMsMessageType = EbMsMessageType.ENERGY_FILE_RESPONSE,
+                        requestId: Option[String] = None,
+                        meter: Option[Meter] = None,
+                        ecId: Option[String] = None, // Community ID
+                        responseData: Option[Seq[ResponseData]] = None,
+                        energy: Option[Energy] = None,
+                        timeline: Option[Timeline] = None,
+                        meterList: Option[Seq[Meter]] = None
                      )
 
 object JsonImplicit {

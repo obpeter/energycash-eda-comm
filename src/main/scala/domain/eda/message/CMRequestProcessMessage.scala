@@ -6,15 +6,21 @@ import at.energydash.model.{EbMsMessage, ResponseData}
 import at.energydash.model.enums.{EbMsMessageType, MeterDirectionType}
 import scalaxb.{Helper, `package`}
 import scalaxb.`package`.toXML
-import xmlprotocol.{CMNotification, CMRequest, CONSUMPTION, DValue2, DocumentMode, GENERATION, MarketParticipantDirectoryType4, Number01Value2, Number01u4610, ProcessDirectoryType4, QHValue, ReqType, RoutingAddress, RoutingHeader, SIMU, SchemaVersionType5}
+import xmlprotocol.{AddressType, CMNotification, CMRequest, CONSUMPTION, DValue2, DocumentMode, DocumentModeType, ECNumber, GENERATION, MarketParticipantDirectoryType4, MarketParticipantDirectoryType6, Number01Value2, Number01u4610, ProcessDirectoryType4, ProcessDirectoryType6, QHValue, ReqType, RoutingAddress, RoutingHeader, SIMU, SIMUValue, SchemaVersionType5}
 
 import java.io.StringWriter
 import java.util.{Calendar, Date}
+import scala.io.Source
 import scala.util.Try
-import scala.xml.{Elem, NodeSeq, XML}
+import scala.xml.{Elem, Node, XML}
 
 case class CMRequestProcessMessage(message: EbMsMessage) extends EdaMessage[CMRequest] {
-  override def toXML: NodeSeq = {
+  override def rootNodeLabel: Option[String] = Some("CMRequest")
+
+  override def schemaLocation: Option[String] = Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10 " +
+    "http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_ONL/01.00/ANFORDERUNG_ECON")
+
+  override def toXML: Node = {
     import java.util.GregorianCalendar
     import scalaxb.XMLStandardTypes._
 
@@ -26,60 +32,56 @@ case class CMRequestProcessMessage(message: EbMsMessage) extends EdaMessage[CMRe
     processCalendar.add(Calendar.DAY_OF_MONTH, 3)
 
     val doc = CMRequest(
-      MarketParticipantDirectoryType4(
+      MarketParticipantDirectoryType6(
         RoutingHeader(
-          RoutingAddress(message.sender),
-          RoutingAddress(message.receiver),
+          RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
+          RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
           Helper.toCalendar(calendar)
         ),
         Number01Value2,
         message.messageCode.toString,
         Map(
-          ("@DocumentMode", scalaxb.DataRecord[DocumentMode](SIMU)),
+          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](SIMUValue)),
           ("@Duplicate", scalaxb.DataRecord(false)),
           ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType5](Number01u4610)),
         )
 
       ),
-      ProcessDirectoryType4(
+      ProcessDirectoryType6(
         message.messageId.get,
         message.conversationId,
-        Helper.toCalendar(calendar),
+        Helper.toCalendar(dateFmt.format(calendar.getTime)),
         message.meter.map(x=>x.meteringPoint),
         message.requestId.get,
         None,
         ReqType(
           "EnergyCommunityRegistration",
-          Helper.toCalendar(processCalendar),
-          Some(Helper.toCalendar(new GregorianCalendar(2099, 12, 31))),
-          Some(QHValue),
-          Some(DValue2),
+          Helper.toCalendar(dateFmt.format(processCalendar.getTime)),
+          Some(Helper.toCalendar(dateFmt.format(new GregorianCalendar(2099, 12, 31).getTime))),
+          None, //Some(QHValue),
+          None, //Some(DValue2),
           message.ecId,
-          Some(BigDecimal(0.0)),
-          message.meter.map {
-            case MeterDirectionType.CONSUMPTION => CONSUMPTION
-            case MeterDirectionType.GENERATION => GENERATION
+          None, //Some(BigDecimal(0.0)),
+          message.meter.map { m =>
+            m.direction match {
+              case Some(MeterDirectionType.CONSUMPTION) => CONSUMPTION
+              case Some(MeterDirectionType.GENERATION) => GENERATION
+            }
           }
         )
       )
     )
 
-    scalaxb.toXML[CMRequest](doc, Some("http://www.ebutilities.at/schemata/customerprocesses/gc/gcrequestap/01p00"), Some("GCRequestAP"),
+    scalaxb.toXML[CMRequest](doc, Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10"), rootNodeLabel,
       scalaxb.toScope(
         None -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
-        Some("cp1") -> "http://www.ebutilities.at/schemata/customerprocesses/gc/gcrequestap/01p00",
+        Some("ns2") -> "http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10",
         Some("xsi") -> "http://www.w3.org/2001/XMLSchema-instance"),
-      true)
+      true).head
   }
-
-  override def toByte: ByteString = {
-    val xml = toXML
-
-    val xmlString = new StringWriter()
-    XML.write(xmlString, xml.head, "UTF-8", true, null)
-
-    ByteString.fromString(xmlString.toString)
-  }
+//  override def toByte: ByteString = {
+//    akka.util.ByteString(Source.fromFile("/home/petero/projects/energycash/xml/CMRequest-test-message.xml").mkString)
+//  }
 }
 
 object CMRequestProcessMessage extends EdaResponseType {
@@ -96,6 +98,7 @@ object CMRequestProcessMessage extends EdaResponseType {
           None,
           None,
           Some(document.ProcessDirectory.ResponseData.map(r => ResponseData(r.MeteringPoint, r.ResponseCode))),
+          None,
           None,
           None,
         )
