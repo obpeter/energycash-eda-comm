@@ -3,6 +3,9 @@ package domain.email
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.util.ByteString
+import at.energydash.actor.{FetchMailActor, MessageStorage}
+import at.energydash.actor.commands.EmailCommand
+import at.energydash.config.Config
 import at.energydash.domain.email.EmailService.{EmailModel, SendEmailCommand, SendEmailResponse}
 import at.energydash.model.EbMsMessage
 import org.jvnet.mock_javamail.{Mailbox, MockTransport}
@@ -32,13 +35,16 @@ class EmailServiceSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
 
   "Send Email" should {
     "SendMailCommand" in {
+      val tenant = "myeeg"
       val mailer = ConfiguredMailer.createMailerFromSession(mockedSession)
-      val mailModel = EmailModel("myeeg", "mom", "miss you", ByteString("".getBytes),
+      val mailModel = EmailModel(tenant, "mom", "miss you", ByteString("".getBytes),
         EbMsMessage(None, "conversationId", "sender", "receiver"))
-      val replyProbe = createTestProbe[EmailService.Response]()
-      val mailCommand = SendEmailCommand(mailModel, mailer, replyProbe.ref)
+      val messageStore = createTestProbe[MessageStorage.Command[_]]()
+      val replyProbe = createTestProbe[EmailCommand]()
 
-      val emailService = spawn(EmailService())
+      val mailCommand = SendEmailCommand(mailModel, replyProbe.ref)
+
+      val emailService = spawn(FetchMailActor(tenant, messageStore.ref))
       emailService ! mailCommand
 
       replyProbe.expectMessage(SendEmailResponse(EbMsMessage(None, "conversationId", "sender", "receiver")))
@@ -52,6 +58,8 @@ class EmailServiceSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
       println(momsMsg.getContent.asInstanceOf[MimeMultipart].getBodyPart(0).getDisposition())
       println(momsMsg)
       momsMsg.getSubject should be("miss you")
+
+      Mailbox.clearAll()
     }
   }
 

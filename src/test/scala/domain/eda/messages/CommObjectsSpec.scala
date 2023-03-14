@@ -1,7 +1,7 @@
 package at.energydash
 package domain.eda.messages
 
-import at.energydash.domain.eda.message.{CMRequestProcessMessage, CPRequestZPListMessage}
+import at.energydash.domain.eda.message.{CMRequestProcessMessage, CPRequestMeteringValueMessage, CPRequestZPListMessage}
 import at.energydash.model.EbMsMessage
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers._
@@ -84,6 +84,60 @@ class CommObjectsSpec extends AnyFlatSpec {
     }
     println(obj.toByte.map(_.toChar).mkString)
 
+    1 should equal(1)
+  }
+
+  "it" should "compile to CP_LIST XML" in {
+    val jsonObject =
+      """{
+        |"messageCode":"ANFORDERUNG_ECP",
+        |"messageId":"rctest202210161905235386216409991",
+        |"conversationId":"ectest202210161905235380027488852",
+        |"sender":"rctest",
+        |"receiver":"ectest",
+        |"requestId": "IWRN74PW",
+        |"timeline":{"from":1678402800000,"to":1678489200000},
+        |"meterList":[{"meteringPoint":"AT00300000000RC100130000000952832"}]
+        |}""".stripMargin
+    val message = decode[EbMsMessage](jsonObject)
+
+    val obj = message match {
+      case Right(m) => CPRequestZPListMessage(m)
+    }
+    1 should equal(1)
+  }
+
+  "it" should "compile to CP_REQ_PT XML" in {
+    val jsonObject ="""{
+        |"messageId" : "RC100130202303131678741400000000001",
+        |"conversationId" : "RC100130202303131678741400000000002",
+        |"sender" : "RC100130",
+        |"receiver" : "AT003000",
+        |"messageCode" : "ANFORDERUNG_PT",
+        |"requestId" : "A6ETEPER",
+        |"meter" : {
+        |  "meteringPoint" : "AT0030000000000000000000000670809",
+        |  "direction" : null
+        |},
+        |"ecId" : null,
+        |"responseData" : null,
+        |"energy" : null,
+        |"timeline" : {
+        |  "from" : 1678402800000,
+        |  "to" : 1678489200000
+        |},
+        |"meterList" : null
+        |}""".stripMargin
+
+    val message = decode[EbMsMessage](jsonObject)
+
+    val obj = message match {
+      case Right(m) => CPRequestMeteringValueMessage(m)
+    }
+    println(obj)
+    println(obj.toByte.map(_.toChar).mkString)
+
+    obj shouldBe a [CPRequestMeteringValueMessage]
     1 should equal(1)
   }
 

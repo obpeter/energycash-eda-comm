@@ -27,10 +27,9 @@ trait EdaMessage[EDAType] {
     } else {
       toXML
     }
-
     val xmlString = new StringWriter()
 
-    XML.save(s"Portfolio.xml", xml, "UTF-8", true, null)
+    //    XML.save(s"Portfolio.xml", xml, "UTF-8", true, null)
     XML.write(xmlString, xml, "UTF-8", true, null)
 
     ByteString.fromString(xmlString.toString)

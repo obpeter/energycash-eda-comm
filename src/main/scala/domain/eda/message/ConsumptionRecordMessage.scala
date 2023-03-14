@@ -6,7 +6,7 @@ import model.{EbMsMessage, Energy, EnergyData, EnergyValue, Meter, ResponseData}
 import akka.util.ByteString
 import at.energydash.model.enums.EbMsMessageType
 import scalaxb.Helper
-import xmlprotocol.{CMNotification, CMRequest, ConsumptionRecord, ConsumptionRecordVersion, DATEN_CRMSG, DocumentMode, MarketParticipantDirectory, MarketParticipantDirectoryType2, MarketParticipantDirectoryType8, Number01Value2, Number01u4630, ProcessDirectoryType2, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SIMU}
+import xmlprotocol.{CMNotification, CMRequest, ConsumptionRecord, ConsumptionRecordVersion, DATEN_CRMSG, DocumentMode, DocumentModeType, MarketParticipantDirectory, MarketParticipantDirectoryType2, MarketParticipantDirectoryType8, Number01Value2, Number01u4630, ProcessDirectoryType2, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SIMU, SIMUValue}
 
 import java.io.StringWriter
 import java.util.{Calendar, Date}
@@ -35,7 +35,7 @@ case class ConsumptionRecordMessage (message: EbMsMessage) extends EdaMessage[CM
         Number01Value2,
         DATEN_CRMSG,
         Map(
-          ("@DocumentMode", scalaxb.DataRecord[DocumentMode](SIMU)),
+          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](SIMUValue)),
           ("@Duplicate", scalaxb.DataRecord(false)),
           ("@SchemaVersion", scalaxb.DataRecord[ConsumptionRecordVersion](Number01u4630)),
         )

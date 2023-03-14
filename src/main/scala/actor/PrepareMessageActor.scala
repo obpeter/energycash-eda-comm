@@ -1,12 +1,13 @@
 package at.energydash
 package actor
 
+import domain.eda.message.MessageHelper
+import model.EbMsMessage
+
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, ReplyEffect}
-import at.energydash.domain.eda.message.MessageHelper
-import at.energydash.model.EbMsMessage
 
 object PrepareMessageActor {
   sealed trait Command[Reply <: CommandReply] {
@@ -14,7 +15,6 @@ object PrepareMessageActor {
   }
   sealed trait Event
   sealed trait CommandReply
-
 
   final case class IdInkremented(messageId: Long)
     extends Event with CborSerializable
@@ -37,9 +37,8 @@ object PrepareMessageActor {
         val event = IdInkremented(messageId+1)
         val msgId = MessageHelper.buildMessageId(message.sender, event.messageId)
         val conversationId = MessageHelper.buildMessageId(message.sender, event.messageId+1)
-
         Effect.persist(event).thenReply(replyTo)(_ =>
-          Prepared( message.copy(messageId = Some(msgId), conversationId=conversationId, requestId=Some(MessageHelper.buildRequestId(msgId)))))
+          Prepared(message.copy(messageId = Some(msgId), conversationId=conversationId, requestId=Some(MessageHelper.buildRequestId(msgId)))))
     }
   }
 

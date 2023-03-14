@@ -1,10 +1,10 @@
-package at.energydash
-package actor.commands
+package at.energydash.actor
+package commands
 
-import domain.email.Fetcher.MailMessage
+import at.energydash.domain.email.Fetcher.MailMessage
 
 sealed trait Command
-sealed trait Response
+trait Response
 
 case class Message[T](value: T) extends Command
 
@@ -16,5 +16,4 @@ case object Start extends Command
 trait EmailCommand extends Command
 trait EmailResponse extends Response
 
-case class FetchEmailResponse(mails: List[MailMessage]) extends EmailCommand
 case class ErrorResponse(message: String) extends EmailCommand

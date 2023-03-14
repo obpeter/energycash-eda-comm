@@ -3,23 +3,23 @@ package domain.email
 
 import at.energydash.config.Config
 import at.energydash.domain.eda.message.{EdaMessage, MessageHelper}
-import at.energydash.model.enums.{EbMsMessageType, EbMsProcessType}
+import at.energydash.model.enums.EbMsProcessType
+import com.typesafe.config.{Config => AkkaConfig}
 
 import java.io.{File, FileOutputStream}
-import java.util.Properties
-import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 
-import javax.mail.Quota.Resource
 import javax.mail.internet.{MimeBodyPart, MimeMultipart}
-import javax.mail.{Authenticator, BodyPart, Flags, Folder, Message, Multipart, Part, PasswordAuthentication, Session, Store}
+import javax.mail.{Flags, Folder, Message, Multipart, Part, Session, Store}
 import javax.mail.search.{AndTerm, FlagTerm, MessageIDTerm, SubjectTerm}
 import scala.util.{Failure, Success}
+import scala.xml.XML
 
 class Fetcher {
 
-  import Fetcher.{EmailEnvelop, MailMessage}
+  import Fetcher.{MailMessage, ErrorMessage, MailContent, FetcherContext}
 
-  val logger: Logger = Logger("EmailClient")
+  val logger = LoggerFactory.getLogger(classOf[Fetcher])
 
   def createAndTerm(subject: String) : AndTerm = new AndTerm(Array(new SubjectTerm(""), Fetcher.UNSEENTERM))
 
@@ -37,11 +37,7 @@ class Fetcher {
 //    inbox
 //  }
 
-  def getStore(tenant: String): Store = {
-    val config = Config.getMailSessionConfig(tenant)
-
-//    Session.getInstance(System.getProperties(), null) //
-    val session = ConfiguredMailer.getSession(config)
+  def getStore(session: Session, config: AkkaConfig): Store = {
     val store = session.getStore()
 
     store.connect(
@@ -51,19 +47,19 @@ class Fetcher {
     store
   }
 
-  def fetch(tenant: String, searchTerm: String): List[MailMessage] = {
-    val store = getStore(tenant)
+  def fetch(searchTerm: String)(implicit ctx: FetcherContext): List[MailContent] = {
+    val store = getStore(ctx.session, ctx.config)
     val inbox = store.getFolder("Inbox")
-    inbox.open(Folder.READ_ONLY)
+    inbox.open(Folder.READ_WRITE)
 
     val messages = inbox.search(createAndTerm(searchTerm))
     logger.info(s"Emails found ${messages.length}")
 
     val msgs = persist(messages).toList.map(buildMessage).collect {
       case Left(value) =>
-        deleteEmail(value, inbox)
-        Left(value)
-      case r => r
+          deleteEmail(value, inbox)
+          Left(value)
+      case right => right
     } collect {
       case Right(value) => value
     }
@@ -74,45 +70,42 @@ class Fetcher {
     msgs
   }
 
-  def buildMessage(m: Message): Either[Message, MailMessage] = {
-    parseSubject(m.getSubject) match {
-      case Some((protocol, messageId)) => {
-        m.getContent match {
-          case multipart: MimeMultipart  => {
-            val bodypart = List.range(0, multipart.getCount)
-              .map(i => multipart.getBodyPart(i).asInstanceOf[MimeBodyPart])
-              .filter(isAttachment)
-            if (bodypart.nonEmpty) {
-              val xmlFile = scala.xml.XML.load(bodypart.head.getInputStream)
-              MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(protocol)).fromXML(xmlFile) match {
-                case Success(value) =>
-                  Right(
-                    MailMessage(
-                      m.getHeader("Message-ID").toList.head,
-                      m.getFrom.head.toString,
-                      protocol,
-                      messageId,
-                      value
-                    )
-                  )
-                case Failure(exception) =>
-                  logger.error(exception.getMessage)
-                  Left(m)
-              }
-            } else {
-              logger.error("Empty Body-part! Probably no Attachment")
-              Left(m)
-            }
-          }
-          case _ =>
-            logger.error("No Multipart in Mail")
-            Left(m)
+  def withAttachement(content: Message): List[MimeBodyPart] = content.getContent match {
+    case multipart: MimeMultipart => List.range(0, multipart.getCount)
+      .map(i => multipart.getBodyPart(i).asInstanceOf[MimeBodyPart])
+      .filter(isAttachment)
+    case _ => List.empty
+  }
 
+  def buildMessage(m: Message): Either[Message, MailContent] = {
+    parseSubject(m.getSubject) match {
+      case Some(("ERROR", "")) =>
+        Right(ErrorMessage("tenant",
+          withAttachement(m).take(1).map(body => scala.xml.XML.load(body.getInputStream)) match {
+            case List(x) => (x.head \ "ReasonText").text
+            case _ => "No Attachement"
+          }))
+      case Some((protocol, messageId)) =>
+        withAttachement(m) match {
+          case List(body) => MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(protocol))
+            .fromXML(scala.xml.XML.load(body.getInputStream)) match {
+              case Success(value) =>
+                Right(
+                  MailMessage(
+                    m.getHeader("Message-ID").toList.head,
+                    m.getFrom.head.toString,
+                    protocol,
+                    messageId,
+                    value
+                  )
+                )
+              case Failure(exception) =>
+                logger.error(exception.getMessage)
+                Left(m)
+              }
+          case _ => Right(ErrorMessage("tenant", "No Attachement"))
         }
-      }
-      case None =>
-        logger.error("Wrong Subject")
-        Left(m)
+      case _ => Left(m)
     }
   }
 
@@ -125,11 +118,13 @@ class Fetcher {
     val pattern = """\[([A-Za-z_-]*)(?:_\d+\.\d+){0,1} MessageId=(.*)\]""".r
     println(s"Subject: ${subject}")
     try {
-      val pattern(protocol, messageId) = subject.toString
+      val pattern(protocol, messageId) = subject
       if (protocol.isEmpty || messageId.isEmpty) None else Some(protocol, messageId)
     } catch {
       case e: MatchError =>
-        println(s"................ Error Subject: ${e}")
+        println(s"................ Error Subject: ${e.getMessage()}")
+        Some("ERROR", "")
+      case _ =>
         None
     }
   }
@@ -170,22 +165,19 @@ class Fetcher {
     }
   }
 
-  def deleteById(tenant: String, id: String): Unit = {
-    val store = getStore(tenant)
+  def deleteById(id: String)(implicit ctx: FetcherContext): Unit = {
+    val store = getStore(ctx.session, ctx.config)
     val inbox = store.getFolder("Inbox")
-    inbox.open(Folder.READ_ONLY)
-
+    inbox.open(Folder.READ_WRITE)
     try {
       val term = new MessageIDTerm(id)
       inbox.search(term).foreach(m => {
         m.setFlag(Flags.Flag.DELETED, true)
       })
-      inbox.close(true)
       logger.info(s"Delete Email with id ${id}")
     } catch {
       case e: Exception => {
         logger.error(e.getMessage)
-        inbox.close()
       }
     } finally {
       inbox.close(true)
@@ -197,26 +189,12 @@ class Fetcher {
 object Fetcher {
 
   def apply() = new Fetcher()
-
   val UNSEENTERM = new FlagTerm(new Flags(Flags.Flag.SEEN), false)
 
   case class EmailEnvelop(id: String, subject: String, protocol: Option[String], msg: Message, content: Multipart)
+  trait MailContent
+  case class MailMessage(id: String, from: String, protocol: String, messageId: String, content: EdaMessage[_]) extends MailContent
+  case class ErrorMessage(id: String, content: String) extends MailContent
+  case class FetcherContext(tenant: String, session: Session, config: AkkaConfig)
 
-  case class MailMessage(id: String, from: String, protocol: String, messageId: String, content: EdaMessage[_])
-
-//  private class MailAuthenticator(username: String, password: String) extends Authenticator {
-//    override protected def getPasswordAuthentication: PasswordAuthentication = new PasswordAuthentication(username, password)
-//  }
-
-//  val props: Properties = System.getProperties
-//  props.setProperty("mail.store.protocol", "imaps")
-//  props.setProperty("mail.imap.ssl.enable", "true")
-//  props.put("mail.imap.port", Config.imapPort);
-//  props.put("mail.imap.starttls.enable", "true");
-//  props.put("mail.imap.ssl.trust", Config.imapHost);
-//
-//  val session: Session = Session.getInstance(props, new MailAuthenticator(Config.imapUser, Config.imapPwd))
-//  val store: Store = session.getStore("imaps")
-
-//  def closeStore(): Unit = store.close()
 }

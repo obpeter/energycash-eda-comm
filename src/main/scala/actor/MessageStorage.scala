@@ -1,11 +1,12 @@
 package at.energydash
 package actor
 
-import akka.actor.typed.{ActorRef, Behavior}
+import model.EbMsMessage
+
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.{ActorRef, Behavior}
 import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, ReplyEffect}
-import at.energydash.model.EbMsMessage
 
 object MessageStorage {
   sealed trait Command[Reply <: CommandReply] {

@@ -11,7 +11,20 @@ import javax.mail.{PasswordAuthentication, Session}
 
 object ConfiguredMailer {
 
-  def getSession(config: Config): Session = {
+  var sessionStore: Map[String, Session] = Map.empty
+
+  def getSession(tenant: String, config: Config): Session = {
+    sessionStore.get(tenant) match {
+      case Some(session) => session
+      case None => {
+        val session = createSession(config)
+        sessionStore = sessionStore ++ Seq(tenant -> session)
+        session
+      }
+    }
+  }
+
+  def createSession(config: Config): Session = {
     //First convert the config to a java.util.Properties
     import scala.jdk.CollectionConverters._
 
@@ -24,6 +37,9 @@ object ConfiguredMailer {
 
     properties.putAll(map.asJava)
 
+    println(s"Mail Properties: ${properties}")
+    println(s"Mail Config: ${properties}")
+
     def authenticatorFromConfig(config: Config) = {
       new javax.mail.Authenticator() {
         override def getPasswordAuthentication() = new PasswordAuthentication(config.getString("username"), config.getString("password"))
@@ -33,13 +49,15 @@ object ConfiguredMailer {
     val configAuthenticator = config.getOptionConfigured("authenticator", authenticatorFromConfig)
 
     //Then make the session
-    configAuthenticator.fold(Session.getInstance(properties))(
+    val session = configAuthenticator.fold(Session.getInstance(properties))(
       authenticator => Session.getInstance(properties, authenticator))
+//    session.setDebug(true)
+    session
   }
 
-  def createMailerFromConfig(config: Config): Mailer = {
-    createMailerFromSession(getSession(config))
-  }
+//  def createMailerFromConfig(config: (String, Config)): Mailer = {
+//    createMailerFromSession(getSession(config))
+//  }
 
   def createMailerFromSession(session: Session): Mailer = {
     Mailer(session)

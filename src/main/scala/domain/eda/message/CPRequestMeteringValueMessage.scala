@@ -1,22 +1,24 @@
 package at.energydash
 package domain.eda.message
 
-import at.energydash.model.{EbMsMessage, Meter}
-import at.energydash.model.enums.{EbMsMessageType, MeterDirectionType}
-import scalaxb.{DataRecord, Helper}
-import xmlprotocol.{AddressType, CPRequest, DocumentMode, DocumentModeType, ECMPList, ECNumber, MarketParticipantDirectoryType8, Number01Value2, Number01u4612Value, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SIMU, SIMUValue, SchemaVersionType7}
+import model.{EbMsMessage, Meter}
+import model.enums.{EbMsMessageType, MeterDirectionType}
+
+import at.energydash.domain.eda.message.{EdaMessage, EdaResponseType}
+import scalaxb.Helper
+import xmlprotocol.{AddressType, CPNotification, CPRequest, DocumentModeType, ECMPList, ECNumber, MarketParticipantDirectoryType8, Number01Value2, Number01u4612Value, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SIMUValue, SchemaVersionType7}
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 import scala.util.Try
 import scala.xml.{Elem, NamespaceBinding, Node, TopScope}
 
-case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPRequest] {
+case class CPRequestMeteringValueMessage(message: EbMsMessage) extends EdaMessage[CPRequest] {
 
   override def rootNodeLabel: Some[String] = Some("CPRequest")
 
   override def schemaLocation: Option[String] = Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12 " +
-    "http://www.ebutilities.at/schemata/customerprocesses/EC_PODLIST/01.00/ANFORDERUNG_ECP")
+    "http://www.ebutilities.at/schemata/customerprocesses/CR_REQ_PT/01.00/ANFORDERUNG_PT")
 
   def toXML: Node = {
     import java.util.GregorianCalendar
@@ -27,7 +29,7 @@ case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPReq
     calendar.set(Calendar.MILLISECOND, 0)
 
     val processCalendar = new GregorianCalendar(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
-//    processCalendar.add(Calendar.DAY_OF_MONTH, 3)
+    processCalendar.add(Calendar.DAY_OF_MONTH, 3)
 
     val dateFmt = new SimpleDateFormat("yyyy-MM-dd")
 
@@ -52,33 +54,33 @@ case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPReq
         Helper.toCalendar(dateFmt.format(processCalendar.getTime)),
         message.meter.map(x=>x.meteringPoint).getOrElse(""),
         message.timeline.map(t => {
-            val from = new GregorianCalendar();from.setTime(t.from);from.set(Calendar.MILLISECOND, 0)
+          val from = new GregorianCalendar();from.setTime(t.from);from.set(Calendar.MILLISECOND, 0)
           from.clear(Calendar.SECOND); from.clear(Calendar.MINUTE); from.clear(Calendar.HOUR)
-            val to = new GregorianCalendar();to.setTime(t.to);to.set(Calendar.MILLISECOND, 0)
+          val to = new GregorianCalendar();to.setTime(t.to);to.set(Calendar.MILLISECOND, 0)
           to.clear(Calendar.SECOND); to.clear(Calendar.MINUTE); to.clear(Calendar.HOUR)
           xmlprotocol.Extension(
-              None,
-              None,
-              None,
-              None,
-              None,
-              DateTimeFrom = Some(Helper.toCalendar(from)),
-              DateTimeTo = Some(Helper.toCalendar(to)),
-              None,
-              None,
-              false)
-          }),
+            None,
+            None,
+            None,
+            None,
+            None,
+            DateTimeFrom = Some(Helper.toCalendar(from)),
+            DateTimeTo = Some(Helper.toCalendar(to)),
+            None,
+            None,
+            false)
+        }),
 
       )
     )
 
-//    scalaxb.toXML[CPRequest](doc, Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12"), Some("CPRequest"),
-//          scalaxb.toScope(
-//            Some("cp") -> "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12",
-//            Some("ct") -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
-//          ),
-//    //      TopScope,
-//          false).head
+    //    scalaxb.toXML[CPRequest](doc, Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12"), Some("CPRequest"),
+    //          scalaxb.toScope(
+    //            Some("cp") -> "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12",
+    //            Some("ct") -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
+    //          ),
+    //    //      TopScope,
+    //          false).head
 
     scalaxb.toXML[CPRequest](doc, Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12"), rootNodeLabel,
       scalaxb.toScope(
@@ -93,15 +95,15 @@ case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPReq
     val nsb2 = NamespaceBinding("schemaLocation", "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12/CPRequest_01p12.xsd", TopScope)
     val nsb3 = NamespaceBinding("xsi", "http://www.w3.org/2001/XMLSchema-instance", nsb2)
     val nsb4 = NamespaceBinding("cp", "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12", TopScope)
-//    val p = PrefixedAttribute("xsi", )
+    //    val p = PrefixedAttribute("xsi", )
     NamespaceBinding(null, "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20", nsb2)
   }
 }
 
-object CPRequestZPListMessage extends EdaResponseType {
-  def fromXML(xmlFile: Elem): Try[CPRequestZPListMessage] = {
-    Try(scalaxb.fromXML[ECMPList](xmlFile)).map(document =>
-      CPRequestZPListMessage(
+object CPRequestMeteringValueMessage extends EdaResponseType {
+  def fromXML(xmlFile: Elem): Try[CPRequestMeteringValueMessage] = {
+    Try(scalaxb.fromXML[CPNotification](xmlFile)).map(document =>
+      CPRequestMeteringValueMessage(
         EbMsMessage(
           Some(document.ProcessDirectory.MessageId),
           document.ProcessDirectory.ConversationId,
@@ -114,14 +116,7 @@ object CPRequestZPListMessage extends EdaResponseType {
           None,
           None,
           None,
-          Some(document.ProcessDirectory.MPListData
-            .map(mp =>
-              Meter(
-                mp.MeteringPoint,
-                Some(MeterDirectionType.withName(mp.MPTimeData.head.EnergyDirection.toString))
-              )
-            )
-          ),
+          None,
         )
       )
     )

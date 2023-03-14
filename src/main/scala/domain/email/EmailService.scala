@@ -6,9 +6,10 @@ import scala.util.{Failure, Success}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.ByteString
+import at.energydash.actor.commands.EmailCommand
 import at.energydash.config.Config
+import at.energydash.domain.email.Fetcher.MailMessage
 import at.energydash.model.EbMsMessage
-
 import courier._
 
 import java.time.LocalDateTime
@@ -16,10 +17,10 @@ import java.time.format.DateTimeFormatter
 
 object EmailService {
   case class EmailModel(tenant: String, toEmail: String, subject: String, attachment: ByteString, data: EbMsMessage)
-  sealed trait Command
+//  sealed trait Command
 
-  case class SendEmailCommand(email: EmailModel, mailer: Mailer, replyTo: ActorRef[Response])(implicit ec: ExecutionContext) extends Command {
-    def sendEmail(): Future[Unit] = {
+  case class SendEmailCommand(email: EmailModel, replyTo: ActorRef[EmailCommand]) extends EmailCommand {
+    def sendEmail(mailer: Mailer)(implicit ex: ExecutionContext): Future[Unit] = {
       println("About to send Email")
 
 //      val mailer = Mailer(MailSession.getInstance(new Properties())).session
@@ -45,28 +46,10 @@ object EmailService {
 
   sealed trait Response
 
-  case class SendEmailResponse(email: EbMsMessage) extends Response
+  case class SendEmailResponse(email: EbMsMessage) extends EmailCommand
 
-  case class ErrorResponse(message: String) extends Response
+  case class SendErrorResponse(tenant: String, message: String) extends EmailCommand
 
-  def apply(): Behavior[Command] =
-    Behaviors.receive({ (context, message) =>
-      implicit val ec = context.executionContext
-      val log = context.log
-
-      message match {
-
-        case req: SendEmailCommand => {
-            req.sendEmail().onComplete {
-              case Success(_) =>
-                req.replyTo ! SendEmailResponse(req.email.data)
-              case Failure(ex) =>
-                log.error("Error Occured  " + ex.getMessage)
-                req.replyTo ! ErrorResponse("Error Occured  " + ex.getMessage)
-            }
-          }
-          Behaviors.same
-      }
-    })
+  case class FetchEmailResponse(tenant: String, mails: List[MailMessage]) extends EmailCommand
 
 }

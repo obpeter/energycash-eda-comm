@@ -64,5 +64,12 @@ lazy val root = (project in file("."))
       "io.circe" %% "circe-parser"
     ).map(_ % circeVersion),
 
-    Compile / scalaxb / scalaxbPackageName := "xmlprotocol"
+    Compile / scalaxb / scalaxbPackageName := "xmlprotocol",
+
+    Test / javaOptions ++= Seq(s"-Dconfig.file=${sourceDirectory.value}/test/resources/application-test.conf"),
+
+//    Test / resourceDirectory := baseDirectory.value / "test-resources",
+
+    Test / fork := true,
+
   )
