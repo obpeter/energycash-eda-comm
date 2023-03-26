@@ -34,7 +34,7 @@ class FetchMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[MessageS
   var logger: Logger = LoggerFactory.getLogger(classOf[FetchMailActor])
 
   var tenant: String = tenantConfig.tenant
-  val config: com.typesafe.config.Config = Config.getMailSessionConfig(tenant)
+//  val config: com.typesafe.config.Config = Config.getMailSessionConfig(tenant)
   private val mailSession = ConfiguredMailer.getSession(tenantConfig)
 
   implicit val mailContext = FetcherContext(tenant, mailSession, mailRepo)

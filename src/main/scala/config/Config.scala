@@ -27,9 +27,5 @@ object Config {
   lazy val cpTopic = config.getString("epmsmail.mqtt.topics.cpTopic")
   lazy val errorTopic = config.getString("epmsmail.mqtt.topics.errorTopic")
 
-  def getMailSessionConfig(tenant: String): AkkaConfig = config.getConfig(s"epmsmail.mail.${tenant}")
-
-  def getTenants: List[String] = config.getList("epmsmail.app.tenants").unwrapped().asScala.map(e => e.toString).toList
-
   def getDomain(domain: String):Map[String, Object] = config.getConfig(s"epmsmail.mail.${domain}.javaxmail").entrySet().asScala.map(e => e.getKey -> e.getValue.unwrapped()).toMap
 }

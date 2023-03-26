@@ -1,3 +1,5 @@
+import com.typesafe.sbt.packager.docker._
+
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
 ThisBuild / scalaVersion := "2.13.9"
@@ -89,14 +91,23 @@ lazy val root = (project in file("."))
 lazy val dockerSettings = Seq(
   Docker / packageName := "eda-email-connector",
   Docker / maintainer := "vfeeg <vfeeg.org>",
+//  Docker / dockerPackageMappings += (baseDirectory.value / "src" / "universal" / "application-app.conf") -> "application-app.conf",
   dockerBaseImage := "openjdk:17-slim-buster",
 //  dockerExposedPorts := Seq(9000),
 //  Docker / daemonUserUid := None,
 //  Docker / daemonUser := "daemon",
   dockerExposedVolumes := Seq("/conf"),
   dockerRepository := Some("ghcr.io"),
-  dockerUsername := Some("vfeeg-development")
-//  dockerCommands += Cmd("LABEL", s"""version="${appVersion}""""),
-//  dockerEntrypoint := Seq("bin/xuc_docker"),
-//  dockerChmodType := DockerChmodType.UserGroupWriteExecute
+  dockerUsername := Some("vfeeg-development"),
+  dockerUpdateLatest := true,
+  dockerCommands := dockerCommands.value.filterNot {
+    case ExecCmd("ENTRYPOINT", _) => true
+    case cmd => false
+  },
+  dockerCommands ++= Seq(
+//    Cmd("ADD", "application-app.conf", "/conf/application.conf"),
+    Cmd("LABEL", s"""version="${appVersion}""""),
+    ExecCmd("CMD", "/opt/docker/bin/emailclient", "-Dconfig.file=/conf/application.conf")
+  ),
+  dockerChmodType := DockerChmodType.UserGroupWriteExecute
 )
