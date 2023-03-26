@@ -8,11 +8,12 @@ import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.actor.typed.scaladsl.{Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
 import at.energydash.actor.MqttPublisher.MqttCommand
+import at.energydash.config.Config
 import at.energydash.domain.dao.model.TenantConfig
 import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository}
 import at.energydash.domain.email.EmailService.SendEmailCommand
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration, MILLISECONDS, SECONDS}
 
 class FetchMailTenantWorker(timers: TimerScheduler[EmailCommand],
                             tenant: TenantConfig,
@@ -20,14 +21,18 @@ class FetchMailTenantWorker(timers: TimerScheduler[EmailCommand],
                             messageStore: ActorRef[MessageStorage.Command[_]],
                             mailRepo: SlickEmailOutboxRepository) {
   import FetchMailTenantWorker._
+  implicit def asFiniteDuration(d: java.time.Duration): FiniteDuration   =
+    scala.concurrent.duration.Duration.fromNanos(d.toNanos)
 
   val rand = new scala.util.Random
+  val interval: FiniteDuration = Config.interval(tenant.domain)
+  println(s"Interval: ${interval.toMillis}")
 
   private def setup(): Behavior[EmailCommand] = {
     Behaviors.setup { context => {
       context.log.info("Setup Tenant Worker")
 
-      timers.startTimerWithFixedDelay(TimerKey, Refresh, 1.minute/* + (rand.nextInt(60*15)).seconds*/)
+      timers.startTimerWithFixedDelay(TimerKey, Refresh, interval + Duration(rand.nextLong(interval.toMillis) / 2, MILLISECONDS))
       val mailActor = context.spawn(FetchMailActor(tenant, messageStore, mailRepo), name = "mail-actor")
 
       def activated(mailActor: ActorRef[EmailCommand]): Behavior[EmailCommand] = {

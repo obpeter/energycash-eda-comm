@@ -1,7 +1,10 @@
 package at.energydash
 package config
 
-import com.typesafe.config.{Config => AkkaConfig, ConfigFactory}
+import com.typesafe.config.{ConfigFactory, Config => AkkaConfig}
+
+import java.time.Duration
+import scala.concurrent.duration.FiniteDuration
 
 object Config {
   import scala.jdk.CollectionConverters._
@@ -14,13 +17,14 @@ object Config {
 
   lazy val emailPersistInbox = config.getString("epmsmail.mail.inbox")
   lazy val emailDomain = (tenant: String) => config.getString(s"epmsmail.mail.${tenant}.domain")
-
+  lazy val interval: String => Duration = (domain: String) => config.getDuration(s"epmsmail.mail.${domain}.interval")
   def getMqttMailConfig: MqttMailConfig = MqttMailConfig(
     config.getString("epmsmail.mqtt.url"),
     config.getString("epmsmail.mqtt.topic"),
     config.getInt("epmsmail.mqtt.qos"),
     config.getString("epmsmail.mqtt.consumer-id")
   )
+
 
   lazy val energyTopic = config.getString("epmsmail.mqtt.topics.energyTopic")
   lazy val cmTopic = config.getString("epmsmail.mqtt.topics.cmTopic")

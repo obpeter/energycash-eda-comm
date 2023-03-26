@@ -97,6 +97,7 @@ lazy val dockerSettings = Seq(
 //  Docker / daemonUserUid := None,
 //  Docker / daemonUser := "daemon",
   dockerExposedVolumes := Seq("/conf"),
+  dockerExposedVolumes := Seq("/storage/prod"),
   dockerRepository := Some("ghcr.io"),
   dockerUsername := Some("vfeeg-development"),
   dockerUpdateLatest := true,

@@ -51,7 +51,6 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   }
 
   def perpareErrorEmail(tenant: String): Unit = {
-    val config = Config.getMailSessionConfig(tenant)
     val session = ConfiguredMailer.getSession(tenantConfig)
 
     val mailMsg: Message = new MimeMessage(session)
