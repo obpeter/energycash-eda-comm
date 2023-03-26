@@ -32,7 +32,6 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
   "Email Fetcher" should {
     "Read Email" in {
       val tenant = "myeeg"
-      val config = Config.getMailSessionConfig(tenant)
       val session = ConfiguredMailer.getSession(tenantConfig)
 
       // prepare Mock - Mailbox
@@ -68,7 +67,6 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
 
     "fetch an error response" in {
       val tenant = "myeeg"
-      val config = Config.getMailSessionConfig(tenant)
       val session = ConfiguredMailer.getSession(tenantConfig)
 
       // prepare Mock - Mailbox
@@ -101,7 +99,6 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
 
     "fetch an error response without attachements" in {
       val tenant = "myeeg"
-      val config = Config.getMailSessionConfig(tenant)
       val session = ConfiguredMailer.getSession(tenantConfig)
 
       val mailMsg: Message = new MimeMessage(session)
@@ -125,7 +122,6 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
 
     "fetch a response without attachements" in {
       val tenant = "myeeg"
-      val config = Config.getMailSessionConfig(tenant)
       val session = ConfiguredMailer.getSession(tenantConfig)
 
       val mailMsg: Message = new MimeMessage(session)
@@ -149,7 +145,6 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
 
     "fetch a response with multiple attachements" in {
       val tenant = "myeeg"
-      val config = Config.getMailSessionConfig(tenant)
       val session = ConfiguredMailer.getSession(tenantConfig)
 
       val mailMsg: Message = new MimeMessage(session)

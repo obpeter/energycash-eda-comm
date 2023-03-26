@@ -33,7 +33,6 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   val emailRepo = new SlickEmailOutboxRepository(Db.getConfig)
 
   def perpareEmail(tenant: String): Unit = {
-    val config = Config.getMailSessionConfig(tenant)
     val session = ConfiguredMailer.getSession(tenantConfig)
 
     // prepare Mock - Mailbox
