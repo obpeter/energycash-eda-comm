@@ -12,14 +12,17 @@ case class ResponseData(MeteringPoint: Option[String],
                         ResponseCode: Seq[BigInt])
 
 case class Timeline(from: Date, to: Date)
+
 case class Meter(meteringPoint: String, direction: Option[MeterDirectionType])
 
 case class EnergyValue(from: Date, to: Option[Date], method: Option[String], value: BigDecimal)
+
 case class EnergyData(meterCode: String, value: Seq[EnergyValue])
+
 case class Energy(start: Date, end: Date, interval: String, nInterval: BigInt, data: Seq[EnergyData])
 
 case class EbMsMessage(
-                        messageId: Option[String],
+                        messageId: Option[String] = None,
                         conversationId: String,
                         sender: String,
                         receiver: String,
@@ -30,10 +33,12 @@ case class EbMsMessage(
                         responseData: Option[Seq[ResponseData]] = None,
                         energy: Option[Energy] = None,
                         timeline: Option[Timeline] = None,
-                        meterList: Option[Seq[Meter]] = None
-                     )
+                        meterList: Option[Seq[Meter]] = None,
+                        errorMessage: Option[String] = None
+                      )
 
 object JsonImplicit {
+
   import io.circe.{Encoder, Decoder}
   import io.circe.syntax._
 

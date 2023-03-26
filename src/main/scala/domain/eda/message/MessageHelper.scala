@@ -16,7 +16,7 @@ object MessageHelper {
 
   def getEdaMessageByType(message: EbMsMessage): EdaMessage[_] = {
     message.messageCode match {
-      case ONLINE_REG_INIT => CMRequestProcessMessage(message)
+      case ONLINE_REG_INIT => CMRequestRegistrationOnlineMessage(message)
       case ZP_LIST => CPRequestZPListMessage(message)
       case EEG_BASE_DATA => CPRequestBaseDataMessage(message)
       case ENERGY_SYNC_REQ => CPRequestMeteringValueMessage(message)
@@ -26,14 +26,14 @@ object MessageHelper {
   def getEdaMessageFromXml(messageCode: EbMsMessageType): EdaResponseType = {
     messageCode match {
       case ENERGY_FILE_RESPONSE => ConsumptionRecordMessage
-      case ONLINE_REG_ANSWER | ONLINE_REG_INIT => CMRequestProcessMessage
+      case ONLINE_REG_ANSWER | ONLINE_REG_INIT => CMRequestRegistrationOnlineMessage
     }
   }
 
   def getEdaMessageFromHeader(processCode: EbMsProcessType): EdaResponseType = {
     processCode match {
       case PROCESS_ENERGY_RESPONSE => ConsumptionRecordMessage
-      case PROCESS_REGISTER_ONLINE => CMRequestProcessMessage
+      case PROCESS_REGISTER_ONLINE => CMRequestRegistrationOnlineMessage
       case PROCESS_LIST_METERINGPOINTS => CPRequestZPListMessage
       case REQ_PROCESS_METERINGPOINTS_VALUE => CPRequestMeteringValueMessage
     }

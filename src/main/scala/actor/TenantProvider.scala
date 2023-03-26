@@ -6,22 +6,42 @@ import domain.email.EmailService.{EmailModel, SendEmailCommand, SendErrorRespons
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
 import at.energydash.actor.FetchMailActor.DeleteEmailCommand
+import at.energydash.actor.MqttPublisher.MqttCommand
 import at.energydash.actor.commands.{Command, EmailCommand}
 import at.energydash.config.Config
+import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository, SlickTenantConfigRepository}
 import org.slf4j.LoggerFactory
 
-class TenantProvider(supervisor: ActorRef[Command], messageStore: ActorRef[MessageStorage.Command[_]]) {
+import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
+import scala.util.Success
+
+class TenantProvider(supervisor: ActorRef[MqttCommand], messageStore: ActorRef[MessageStorage.Command[_]]) {
 
   import TenantProvider._
   var logger = LoggerFactory.getLogger(classOf[TenantProvider])
 
   def start: Behavior[EmailCommand] = Behaviors.setup[EmailCommand] { context => {
+    import context.executionContext
+
+    val dbConfig = Db.getConfig
+    val mailRepo = new SlickEmailOutboxRepository(dbConfig)
+    val tenantConfigRepository = new SlickTenantConfigRepository(dbConfig)
+    //    tenantConfigRepository.init()
+
     def setup(): Behavior[EmailCommand] = {
       Behaviors.receiveMessage {
-        case Start =>
-          val tenants = Config.getTenants
-          val a = tenants.map(t => (t -> context.spawn(FetchMailTenantWorker(t, supervisor, messageStore), s"worker-$t"))).toMap
+        case TenantStart =>
+          val tenants = Await.result(tenantConfigRepository.allActivated(), 3.seconds)
+          val a = tenants.map(t => (t.tenant -> context.spawn(FetchMailTenantWorker(t, supervisor, messageStore, mailRepo), s"worker-${t.tenant}"))).toMap
           provide(a)
+//          tenantConfigRepository.allActivated().collect {
+//            case tenants  => {
+//              val a = tenants.map(t => (t.tenant -> context.spawn(FetchMailTenantWorker(t, supervisor, messageStore, mailRepo), s"worker-${t.tenant}"))).toMap
+//              provide(a)
+//            }
+//          }
+//          Behaviors.same
       }
     }
 
@@ -49,12 +69,12 @@ class TenantProvider(supervisor: ActorRef[Command], messageStore: ActorRef[Messa
 
 object TenantProvider {
 
-  case object Start extends EmailCommand
+  case object TenantStart extends EmailCommand
 
   case class DistributeMail(tenant: String, mail: EmailModel, replyTo: ActorRef[EmailCommand]) extends EmailCommand
 
   case class DeleteMail(tenant: String, messageId: String) extends EmailCommand
 
-  def apply(supervisor: ActorRef[Command], messageStore: ActorRef[MessageStorage.Command[_]]): Behavior[EmailCommand] =
-    new TenantProvider(supervisor, messageStore).start
+  def apply(mqttPublisher: ActorRef[MqttCommand], messageStore: ActorRef[MessageStorage.Command[_]]): Behavior[EmailCommand] =
+    new TenantProvider(mqttPublisher, messageStore).start
 }

@@ -2,6 +2,8 @@ package at.energydash
 package domain.email
 
 import at.energydash.config.Config
+import at.energydash.domain.dao.model.TenantConfig
+import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository}
 import at.energydash.domain.eda.message.CPRequestZPListMessage
 import at.energydash.domain.email.Fetcher.{ErrorMessage, FetcherContext, MailMessage}
 import at.energydash.model.EbMsMessage
@@ -13,19 +15,25 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import javax.mail.internet.{InternetAddress, MimeMessage}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.Implicits
 import scala.io.Source
 import scala.language.implicitConversions
 import scala.xml.XML
 
 class FetcherSpec extends AnyWordSpecLike with Matchers {
 
+  import scala.concurrent.ExecutionContext.Implicits.global
   implicit def stringToInternetAddress(string:String):InternetAddress = new InternetAddress(string)
 
+  val tenantConfig = TenantConfig("myeeg", "email.com", "email.com", 0, 0, "sepp", "password", "", "", true)
+  val emailRepo = new SlickEmailOutboxRepository(Db.getConfig)
+
   "Email Fetcher" should {
-    "Send Email" in {
+    "Read Email" in {
       val tenant = "myeeg"
       val config = Config.getMailSessionConfig(tenant)
-      val session = ConfiguredMailer.getSession(tenant, config)
+      val session = ConfiguredMailer.getSession(tenantConfig)
 
       // prepare Mock - Mailbox
       val attachement = XML.load(Source.fromResource("TestECMPLIst.xml").reader())
@@ -42,7 +50,7 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
       Mailbox.get("sepp@email.com").add(mailMsg)
 
       val fetcher: Fetcher = Fetcher()
-      val msgs = fetcher.fetch("[")(FetcherContext(tenant, session, config))
+      val msgs = fetcher.fetch("[")(FetcherContext(tenant, session, emailRepo))
 
       msgs should have size 1
       msgs shouldBe a[List[MailMessage]]
@@ -61,7 +69,7 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
     "fetch an error response" in {
       val tenant = "myeeg"
       val config = Config.getMailSessionConfig(tenant)
-      val session = ConfiguredMailer.getSession(tenant, config)
+      val session = ConfiguredMailer.getSession(tenantConfig)
 
       // prepare Mock - Mailbox
       val attachement = XML.load(Source.fromResource("error.xml").reader())
@@ -78,15 +86,15 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
       Mailbox.get("sepp@email.com").add(mailMsg)
 
       val fetcher: Fetcher = Fetcher()
-      val msgs = fetcher.fetch("")(FetcherContext(tenant, session, config))
+      val msgs = fetcher.fetch("")(FetcherContext(tenant, session, emailRepo))
 
       msgs should have size 1
       msgs shouldBe a[List[ErrorMessage]]
       val msg: ErrorMessage = msgs.head.asInstanceOf[ErrorMessage]
-      msg.content shouldBe
+      msg.content.message.errorMessage shouldBe Some(
         """Der Messenger hat eine Fehlermeldung zurueck geliefert. Beschreibung: 'Validation failed.  Reason: 2 XML errors found while validating with (ANFORDERUNG_ECP 01.00/EC_PODLIST_01.00)
           |   (Line 2 / Column 1154) cvc-minLength-valid: Value &apos;&apos; with length = &apos;0&apos; is not facet-valid with respect to minLength &apos;1&apos; for type &apos;MeteringPoint&apos;.
-          |   (Line 2 / Column 1154) cvc-type.3.1.3: The value &apos;&apos; of element &apos;ct:MeteringPoint&apos; is not valid.'""".stripMargin
+          |   (Line 2 / Column 1154) cvc-type.3.1.3: The value &apos;&apos; of element &apos;ct:MeteringPoint&apos; is not valid.'""".stripMargin)
 
       Mailbox.clearAll()
     }
@@ -94,7 +102,7 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
     "fetch an error response without attachements" in {
       val tenant = "myeeg"
       val config = Config.getMailSessionConfig(tenant)
-      val session = ConfiguredMailer.getSession(tenant, config)
+      val session = ConfiguredMailer.getSession(tenantConfig)
 
       val mailMsg: Message = new MimeMessage(session)
       mailMsg.setSubject("EDA Mail Adapter - Fehler")
@@ -105,12 +113,12 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
       Mailbox.get("sepp@email.com").add(mailMsg)
 
       val fetcher: Fetcher = Fetcher()
-      val msgs = fetcher.fetch("")(FetcherContext(tenant, session, config))
+      val msgs = fetcher.fetch("")(FetcherContext(tenant, session, emailRepo))
 
       msgs should have size 1
       msgs shouldBe a[List[ErrorMessage]]
       val msg: ErrorMessage = msgs.head.asInstanceOf[ErrorMessage]
-      msg.content shouldBe "No Attachement"
+      msg.content.message.errorMessage shouldBe Some("No Attachement")
 
       Mailbox.clearAll()
     }
@@ -118,7 +126,7 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
     "fetch a response without attachements" in {
       val tenant = "myeeg"
       val config = Config.getMailSessionConfig(tenant)
-      val session = ConfiguredMailer.getSession(tenant, config)
+      val session = ConfiguredMailer.getSession(tenantConfig)
 
       val mailMsg: Message = new MimeMessage(session)
       mailMsg.setSubject("[EC_PODLIST_01.00 MessageId=123456]")
@@ -129,12 +137,12 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
       Mailbox.get("sepp@email.com").add(mailMsg)
 
       val fetcher: Fetcher = Fetcher()
-      val msgs = fetcher.fetch("")(FetcherContext(tenant, session, config))
+      val msgs = fetcher.fetch("")(FetcherContext(tenant, session, emailRepo))
 
       msgs should have size 1
       msgs shouldBe a[List[ErrorMessage]]
       val msg: ErrorMessage = msgs.head.asInstanceOf[ErrorMessage]
-      msg.content shouldBe "No Attachement"
+      msg.content.message.errorMessage shouldBe Some("No Attachement")
 
       Mailbox.clearAll()
     }
@@ -142,7 +150,7 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
     "fetch a response with multiple attachements" in {
       val tenant = "myeeg"
       val config = Config.getMailSessionConfig(tenant)
-      val session = ConfiguredMailer.getSession(tenant, config)
+      val session = ConfiguredMailer.getSession(tenantConfig)
 
       val mailMsg: Message = new MimeMessage(session)
       val attachement = XML.load(Source.fromResource("error.xml").reader())
@@ -158,12 +166,12 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
       Mailbox.get("sepp@email.com").add(mailMsg)
 
       val fetcher: Fetcher = Fetcher()
-      val msgs = fetcher.fetch("")(FetcherContext(tenant, session, config))
+      val msgs = fetcher.fetch("")(FetcherContext(tenant, session, emailRepo))
 
       msgs should have size 1
       msgs shouldBe a[List[ErrorMessage]]
       val msg: ErrorMessage = msgs.head.asInstanceOf[ErrorMessage]
-      msg.content shouldBe "No Attachement"
+      msg.content.message.errorMessage shouldBe Some("No Attachement")
 
       Mailbox.clearAll()
     }

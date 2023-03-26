@@ -2,16 +2,24 @@ package at.energydash
 package domain.email
 
 import at.energydash.config.Config
-import at.energydash.domain.eda.message.{EdaMessage, MessageHelper}
-import at.energydash.model.enums.EbMsProcessType
+import at.energydash.domain.dao.model.EmailOutbox
+import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository}
+import at.energydash.domain.eda.message.{EdaErrorMessage, EdaMessage, MessageHelper}
+import at.energydash.domain.email.Fetcher.MailerResponseValue
+import at.energydash.model.EbMsMessage
+import at.energydash.model.enums.{EbMsMessageType, EbMsProcessType}
 import com.typesafe.config.{Config => AkkaConfig}
 
-import java.io.{File, FileOutputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataOutputStream, File, FileOutputStream}
 import org.slf4j.LoggerFactory
 
+import java.nio.ByteBuffer
+import java.sql.{Blob, Date, Timestamp}
 import javax.mail.internet.{MimeBodyPart, MimeMultipart}
 import javax.mail.{Flags, Folder, Message, Multipart, Part, Session, Store}
 import javax.mail.search.{AndTerm, FlagTerm, MessageIDTerm, SubjectTerm}
+import javax.sql.rowset.serial.SerialBlob
+import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 import scala.xml.XML
 
@@ -23,9 +31,12 @@ class Fetcher {
 
   def createAndTerm(subject: String) : AndTerm = new AndTerm(Array(new SubjectTerm(""), Fetcher.UNSEENTERM))
 
-  def persist(msgs: Array[Message]): Array[Message] = {
+  def persist(tenant: String, msgs: Array[Message])(implicit ctx: FetcherContext): Array[Message] = {
     msgs.foreach(m => if(m.getSize > 0) {
-      m.writeTo(new FileOutputStream(new File(s"${Config.emailPersistInbox}/${m.getReceivedDate.toString}_${m.getSubject}-${m.getMessageNumber}.eml")))
+      val dataOutputStream = new ByteArrayOutputStream()
+      m.writeTo(dataOutputStream)
+//      m.writeTo(new FileOutputStream(new File(s"${Config.emailPersistInbox}/${m.getReceivedDate.toString}_${m.getSubject}-${m.getMessageNumber}.eml")))
+      ctx.mailRepo.create(EmailOutbox(None, tenant, dataOutputStream.toByteArray, new Timestamp(System.currentTimeMillis())))
     })
     msgs
   }
@@ -37,31 +48,27 @@ class Fetcher {
 //    inbox
 //  }
 
-  def getStore(session: Session, config: AkkaConfig): Store = {
+  def getStore(session: Session): Store = {
     val store = session.getStore()
 
-    store.connect(
-      config.getString("javaxmail.mail.imap.host"),
-      config.getString("authenticator.username"),
-      config.getString("authenticator.password"))
+    store.connect()
     store
   }
 
   def fetch(searchTerm: String)(implicit ctx: FetcherContext): List[MailContent] = {
-    val store = getStore(ctx.session, ctx.config)
+    val store = getStore(ctx.session)
     val inbox = store.getFolder("Inbox")
     inbox.open(Folder.READ_WRITE)
 
     val messages = inbox.search(createAndTerm(searchTerm))
-    logger.info(s"Emails found ${messages.length}")
+    logger.info(s"[${ctx.tenant}] Emails found ${messages.length}")
 
-    val msgs = persist(messages).toList.map(buildMessage).collect {
-      case Left(value) =>
+    val messageOptions: List[Either[Message, MailContent]] = persist(ctx.tenant, messages).toList.map(buildMessage)
+    val msgs: List[MailContent] = messageOptions.flatMap {
+      case Left(value:Message) =>
           deleteEmail(value, inbox)
-          Left(value)
-      case right => right
-    } collect {
-      case Right(value) => value
+          None
+      case Right(right) => Some(right)
     }
 
     inbox.close(true)
@@ -80,10 +87,18 @@ class Fetcher {
   def buildMessage(m: Message): Either[Message, MailContent] = {
     parseSubject(m.getSubject) match {
       case Some(("ERROR", "")) =>
-        Right(ErrorMessage("tenant",
+        Right(ErrorMessage(m.getHeader("Message-ID").toList.head, "ERROR",
           withAttachement(m).take(1).map(body => scala.xml.XML.load(body.getInputStream)) match {
-            case List(x) => (x.head \ "ReasonText").text
-            case _ => "No Attachement"
+            case List(x) => EdaErrorMessage.fromXML(x) match {
+              case Success(e) => e
+              case Failure(exception) => EdaErrorMessage(EbMsMessage(messageCode = EbMsMessageType.ERROR_MESSAGE, conversationId = "1", messageId = None,
+                sender = "", receiver = "", errorMessage = Some(exception.getMessage)))
+            }
+            case _ => EdaErrorMessage.fromXML(<EDASendError><ReasonText>No Attachement</ReasonText></EDASendError>) match {
+              case Success(e) => e
+              case Failure(exception) => EdaErrorMessage(EbMsMessage(messageCode = EbMsMessageType.ERROR_MESSAGE, conversationId = "1", messageId = None,
+                sender = "", receiver = "", errorMessage = Some(exception.getMessage)))
+            }
           }))
       case Some((protocol, messageId)) =>
         withAttachement(m) match {
@@ -103,7 +118,16 @@ class Fetcher {
                 logger.error(exception.getMessage)
                 Left(m)
               }
-          case _ => Right(ErrorMessage("tenant", "No Attachement"))
+          case _ => Right(ErrorMessage(
+            m.getHeader("Message-ID").toList.head,
+            "ERROR", EdaErrorMessage.fromXML(
+              <EDASendError>
+                <ReasonText>No Attachement</ReasonText>
+              </EDASendError>) match {
+            case Success(e) => e
+            case Failure(exception) => EdaErrorMessage(EbMsMessage(messageCode = EbMsMessageType.ERROR_MESSAGE, conversationId = "1", messageId = None,
+              sender = "", receiver = "", errorMessage = Some(exception.getMessage)))
+            }))
         }
       case _ => Left(m)
     }
@@ -122,9 +146,9 @@ class Fetcher {
       if (protocol.isEmpty || messageId.isEmpty) None else Some(protocol, messageId)
     } catch {
       case e: MatchError =>
-        println(s"................ Error Subject: ${e.getMessage()}")
+        logger.error(s"Error Subject: ${e.getMessage()}")
         Some("ERROR", "")
-      case _ =>
+      case _: Throwable =>
         None
     }
   }
@@ -166,7 +190,7 @@ class Fetcher {
   }
 
   def deleteById(id: String)(implicit ctx: FetcherContext): Unit = {
-    val store = getStore(ctx.session, ctx.config)
+    val store = getStore(ctx.session)
     val inbox = store.getFolder("Inbox")
     inbox.open(Folder.READ_WRITE)
     try {
@@ -194,7 +218,11 @@ object Fetcher {
   case class EmailEnvelop(id: String, subject: String, protocol: Option[String], msg: Message, content: Multipart)
   trait MailContent
   case class MailMessage(id: String, from: String, protocol: String, messageId: String, content: EdaMessage[_]) extends MailContent
-  case class ErrorMessage(id: String, content: String) extends MailContent
-  case class FetcherContext(tenant: String, session: Session, config: AkkaConfig)
+  case class ErrorMessage(id: String, protocol: String, content: EdaMessage[_]) extends MailContent
+  case class FetcherContext(tenant: String, session: Session, mailRepo: SlickEmailOutboxRepository)
+
+  sealed trait MailerResponseValue
+  case class MailMessageList(response: List[MailMessage]) extends MailerResponseValue
+  case class ErrorMessageList(response: List[ErrorMessage]) extends MailerResponseValue
 
 }

@@ -8,12 +8,18 @@ lazy val akkaVersion     = "2.6.19"
 lazy val courierVersion  = "3.0.1"
 lazy val alpakkaVersion  = "4.0.0"
 lazy val circeVersion    = "0.14.3"
+lazy val slickVersion = "3.4.1"
 
+val appVersion      = "0.0.1"
 
 lazy val root = (project in file("."))
   .enablePlugins(ScalaxbPlugin)
+  .enablePlugins(JavaAppPackaging)
+  .settings(dockerSettings)
   .settings(
     name := "EmailClient",
+
+    organization := "vfeeg-development",
 
     idePackagePrefix := Some("at.energydash"),
 
@@ -64,6 +70,12 @@ lazy val root = (project in file("."))
       "io.circe" %% "circe-parser"
     ).map(_ % circeVersion),
 
+    libraryDependencies ++= Seq(
+      "com.typesafe.slick" %% "slick" % slickVersion,
+      "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
+      "org.postgresql" % "postgresql" % "42.2.5"
+    ),
+
     Compile / scalaxb / scalaxbPackageName := "xmlprotocol",
 
     Test / javaOptions ++= Seq(s"-Dconfig.file=${sourceDirectory.value}/test/resources/application-test.conf"),
@@ -73,3 +85,18 @@ lazy val root = (project in file("."))
     Test / fork := true,
 
   )
+
+lazy val dockerSettings = Seq(
+  Docker / packageName := "eda-email-connector",
+  Docker / maintainer := "vfeeg <vfeeg.org>",
+  dockerBaseImage := "openjdk:17-slim-buster",
+//  dockerExposedPorts := Seq(9000),
+//  Docker / daemonUserUid := None,
+//  Docker / daemonUser := "daemon",
+  dockerExposedVolumes := Seq("/conf"),
+  dockerRepository := Some("ghcr.io"),
+  dockerUsername := Some("vfeeg-development")
+//  dockerCommands += Cmd("LABEL", s"""version="${appVersion}""""),
+//  dockerEntrypoint := Seq("bin/xuc_docker"),
+//  dockerChmodType := DockerChmodType.UserGroupWriteExecute
+)

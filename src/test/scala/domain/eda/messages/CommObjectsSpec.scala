@@ -1,7 +1,7 @@
 package at.energydash
 package domain.eda.messages
 
-import at.energydash.domain.eda.message.{CMRequestProcessMessage, CPRequestMeteringValueMessage, CPRequestZPListMessage}
+import at.energydash.domain.eda.message.{CMRequestRegistrationOnlineMessage, CPRequestMeteringValueMessage, CPRequestZPListMessage}
 import at.energydash.model.EbMsMessage
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers._
@@ -13,79 +13,13 @@ import io.circe.parser.decode
 
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
+import scala.xml.NodeSeq.fromSeq
 import scala.xml.{NamespaceBinding, TopScope}
 
 
 class CommObjectsSpec extends AnyFlatSpec {
 
   import at.energydash.model.JsonImplicit._
-
-  val xmlObj = GCRequestAP(
-    MarketParticipantDirectoryType(
-      RoutingHeader(
-        RoutingAddress("AT003000"),
-        RoutingAddress("AT003000"),
-        Helper.toCalendar("2002-10-10T12:00:00-05:00")
-      ),
-      Number01Value2,
-      ANFORDERUNG_AP,
-    ),
-    ProcessDirectoryType(
-      "MessageId",
-      "ConversationId",
-      Helper.toCalendar("2002-10-10T12:00:00-05:00"),
-      "MeteringPoint",
-      GCRequestAP_EXT("ParticipantMeter", Some(BigDecimal(0.0))) :: Nil
-    )
-  )
-
-//  "A CPRequest Communication Object" should "exists" in {
-//      xmlObj.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress should equal ("AT003000")
-//  }
-
-  "it" should "compile to xml" in {
-    val jsonObject =
-      """{
-        |"messageCode":"ANFORDERUNG_ECP",
-        |"messageId":"rctest202210161905235386216409991",
-        |"conversationId":"ectest202210161905235380027488852",
-        |"sender":"rctest",
-        |"receiver":"ectest",
-        |"meter": {"meteringPoint":"communityId"},
-        |"timeline": {"from": 1672915665000, "to": 1672915665000}
-        |}""".stripMargin
-    val message = decode[EbMsMessage](jsonObject)
-
-    val obj = message match {
-      case Right(m) => CPRequestZPListMessage(m)
-    }
-    println(obj.toByte.map(_.toChar).mkString)
-
-    1 should equal (1)
-  }
-
-  "it" should "compile to CMRequest XML" in {
-    val jsonObject =
-      """{
-        |"messageCode":"ANFORDERUNG_ECON",
-        |"messageId":"rctest202210161905235386216409991",
-        |"conversationId":"ectest202210161905235380027488852",
-        |"sender":"rctest",
-        |"receiver":"ectest",
-        |"requestId": "IWRN74PW",
-        |"ecId": "AT00300000000RC100181000000956509",
-        |"meter": {"meteringPoint":"AT0030000000000000000000000012345", "direction": "CONSUMPTION"},
-        |"timeline": {"from": 1672915665000, "to": 1672915665000}
-        |}""".stripMargin
-    val message = decode[EbMsMessage](jsonObject)
-
-    val obj = message match {
-      case Right(m) => CMRequestProcessMessage(m)
-    }
-    println(obj.toByte.map(_.toChar).mkString)
-
-    1 should equal(1)
-  }
 
   "it" should "compile to CP_LIST XML" in {
     val jsonObject =
@@ -97,14 +31,15 @@ class CommObjectsSpec extends AnyFlatSpec {
         |"receiver":"ectest",
         |"requestId": "IWRN74PW",
         |"timeline":{"from":1678402800000,"to":1678489200000},
-        |"meterList":[{"meteringPoint":"AT00300000000RC100130000000952832"}]
+        |"meter":{"meteringPoint":"AT00300000000RC100130000000952832"}
         |}""".stripMargin
     val message = decode[EbMsMessage](jsonObject)
 
-    val obj = message match {
-      case Right(m) => CPRequestZPListMessage(m)
+    val node = message match {
+      case Right(m) => CPRequestZPListMessage(m).toXML
     }
-    1 should equal(1)
+
+    (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT00300000000RC100130000000952832"
   }
 
   "it" should "compile to CP_REQ_PT XML" in {
@@ -131,14 +66,12 @@ class CommObjectsSpec extends AnyFlatSpec {
 
     val message = decode[EbMsMessage](jsonObject)
 
-    val obj = message match {
+    val node = message match {
       case Right(m) => CPRequestMeteringValueMessage(m)
     }
-    println(obj)
-    println(obj.toByte.map(_.toChar).mkString)
 
-    obj shouldBe a [CPRequestMeteringValueMessage]
-    1 should equal(1)
+    node shouldBe a [CPRequestMeteringValueMessage]
+    (node.toXML \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000670809"
   }
 
   "it" should "compile to Namespace" in {

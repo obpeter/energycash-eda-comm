@@ -7,40 +7,46 @@ import actor.commands.{Command, EmailCommand}
 import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.actor.typed.scaladsl.{Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
-import at.energydash.config.Config
-import at.energydash.domain.email.ConfiguredMailer
+import at.energydash.actor.MqttPublisher.MqttCommand
+import at.energydash.domain.dao.model.TenantConfig
+import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository}
 import at.energydash.domain.email.EmailService.SendEmailCommand
 
-import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-import scala.util.{Failure, Success, Try}
 
-class FetchMailTenantWorker(timers: TimerScheduler[EmailCommand], tenant: String, supervisor: ActorRef[EmailCommand], messageStore: ActorRef[MessageStorage.Command[_]]) {
+class FetchMailTenantWorker(timers: TimerScheduler[EmailCommand],
+                            tenant: TenantConfig,
+                            mqttPublisher: ActorRef[MqttCommand],
+                            messageStore: ActorRef[MessageStorage.Command[_]],
+                            mailRepo: SlickEmailOutboxRepository) {
   import FetchMailTenantWorker._
+
+  val rand = new scala.util.Random
 
   private def setup(): Behavior[EmailCommand] = {
     Behaviors.setup { context => {
       context.log.info("Setup Tenant Worker")
 
-      timers.startTimerWithFixedDelay(TimerKey, Refresh, 1.minute)
-
-      val mailActor = context.spawn(FetchMailActor(tenant, messageStore), name = "mail-actor")
+      timers.startTimerWithFixedDelay(TimerKey, Refresh, 1.minute/* + (rand.nextInt(60*15)).seconds*/)
+      val mailActor = context.spawn(FetchMailActor(tenant, messageStore, mailRepo), name = "mail-actor")
 
       def activated(mailActor: ActorRef[EmailCommand]): Behavior[EmailCommand] = {
         println("Activate Tenant Worker")
         Behaviors.receiveMessage[EmailCommand] {
           case Refresh =>
-            mailActor ! FetchEmailCommand(tenant, "", supervisor)
+            mailActor ! FetchEmailCommand(tenant.tenant, "", mqttPublisher)
             Behaviors.same
 
           case WaitResponse =>
-            mailActor ! FetchEmailCommand(tenant, "", supervisor)
+            mailActor ! FetchEmailCommand(tenant.tenant, "", mqttPublisher)
             Behaviors.same
 
           case msg@SendEmailCommand(_, _) =>
             context.log.debug(s"Forward mail to Mail Actor ${msg.email.toEmail}")
 
             mailActor ! msg
+            timers.startSingleTimer(Refresh, 1.minute)
+
             Behaviors.same
 
           case msg: DeleteEmailCommand =>
@@ -60,7 +66,10 @@ object FetchMailTenantWorker {
   private case object WaitResponse extends EmailCommand
   private case object TimerKey
 
-  def apply(tenant: String, supervisor: ActorRef[EmailCommand], messageStore: ActorRef[MessageStorage.Command[_]]): Behavior[EmailCommand] = {
-    Behaviors.withTimers(timers => new FetchMailTenantWorker(timers, tenant, supervisor, messageStore).setup())
+  def apply(tenantConfig: TenantConfig,
+            mqttPublisher: ActorRef[MqttCommand],
+            messageStore: ActorRef[MessageStorage.Command[_]],
+            mailRepo: SlickEmailOutboxRepository): Behavior[EmailCommand] = {
+    Behaviors.withTimers(timers => new FetchMailTenantWorker(timers, tenantConfig, mqttPublisher, messageStore, mailRepo).setup())
   }
 }

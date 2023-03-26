@@ -6,6 +6,8 @@ import akka.util.ByteString
 import at.energydash.actor.{FetchMailActor, MessageStorage}
 import at.energydash.actor.commands.EmailCommand
 import at.energydash.config.Config
+import at.energydash.domain.dao.model.TenantConfig
+import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository}
 import at.energydash.domain.email.EmailService.{EmailModel, SendEmailCommand, SendEmailResponse}
 import at.energydash.model.EbMsMessage
 import org.jvnet.mock_javamail.{Mailbox, MockTransport}
@@ -23,8 +25,11 @@ class MockedSMTPProvider
 
 
 class EmailServiceSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with Matchers {
-
+  val tenantConfig = TenantConfig("myeeg", "email.com", "email.com", 0, 0, "sepp", "password", "", "", true)
   implicit def stringToInternetAddress(string:String):InternetAddress = new InternetAddress(string)
+
+  import scala.concurrent.ExecutionContext.Implicits.global
+  val emailRepo = new SlickEmailOutboxRepository(Db.getConfig)
 
   private val mockedSession = javax.mail.Session.getDefaultInstance(new Properties() {
     {
@@ -44,7 +49,7 @@ class EmailServiceSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
 
       val mailCommand = SendEmailCommand(mailModel, replyProbe.ref)
 
-      val emailService = spawn(FetchMailActor(tenant, messageStore.ref))
+      val emailService = spawn(FetchMailActor(tenantConfig, messageStore.ref, emailRepo))
       emailService ! mailCommand
 
       replyProbe.expectMessage(SendEmailResponse(EbMsMessage(None, "conversationId", "sender", "receiver")))

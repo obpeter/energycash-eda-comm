@@ -14,11 +14,11 @@ import scala.io.Source
 import scala.util.Try
 import scala.xml.{Elem, Node, XML}
 
-case class CMRequestProcessMessage(message: EbMsMessage) extends EdaMessage[CMRequest] {
+case class CMRequestRegistrationOnlineMessage(message: EbMsMessage) extends EdaMessage[CMRequest] {
   override def rootNodeLabel: Option[String] = Some("CMRequest")
 
-  override def schemaLocation: Option[String] = Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10 " +
-    "http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_ONL/01.00/ANFORDERUNG_ECON")
+  override def schemaLocation: Option[String] =
+    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10 http://www.ebutilities.at/schemata/customerprocesses/CM_REQ_ONL/01.10/ANFORDERUNG_CCMO")
 
   override def toXML: Node = {
     import java.util.GregorianCalendar
@@ -66,6 +66,7 @@ case class CMRequestProcessMessage(message: EbMsMessage) extends EdaMessage[CMRe
             m.direction match {
               case Some(MeterDirectionType.CONSUMPTION) => CONSUMPTION
               case Some(MeterDirectionType.GENERATION) => GENERATION
+              case None => CONSUMPTION
             }
           }
         )
@@ -84,10 +85,10 @@ case class CMRequestProcessMessage(message: EbMsMessage) extends EdaMessage[CMRe
 //  }
 }
 
-object CMRequestProcessMessage extends EdaResponseType {
-  def fromXML(xmlFile: Elem): Try[CMRequestProcessMessage] = {
+object CMRequestRegistrationOnlineMessage extends EdaResponseType {
+  def fromXML(xmlFile: Elem): Try[CMRequestRegistrationOnlineMessage] = {
     Try(scalaxb.fromXML[CMNotification](xmlFile)).map(document =>
-      CMRequestProcessMessage(
+      CMRequestRegistrationOnlineMessage(
         EbMsMessage(
           Some(document.ProcessDirectory.MessageId),
           document.ProcessDirectory.ConversationId,

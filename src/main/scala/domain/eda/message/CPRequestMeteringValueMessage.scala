@@ -18,7 +18,7 @@ case class CPRequestMeteringValueMessage(message: EbMsMessage) extends EdaMessag
   override def rootNodeLabel: Some[String] = Some("CPRequest")
 
   override def schemaLocation: Option[String] = Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12 " +
-    "http://www.ebutilities.at/schemata/customerprocesses/CR_REQ_PT/01.00/ANFORDERUNG_PT")
+    "http://www.ebutilities.at/schemata/customerprocesses/CR_REQ_PT/03.00/ANFORDERUNG_PT")
 
   def toXML: Node = {
     import java.util.GregorianCalendar
@@ -29,7 +29,7 @@ case class CPRequestMeteringValueMessage(message: EbMsMessage) extends EdaMessag
     calendar.set(Calendar.MILLISECOND, 0)
 
     val processCalendar = new GregorianCalendar(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
-    processCalendar.add(Calendar.DAY_OF_MONTH, 3)
+//    processCalendar.add(Calendar.DAY_OF_MONTH, 3)
 
     val dateFmt = new SimpleDateFormat("yyyy-MM-dd")
 
