@@ -7,6 +7,7 @@ import at.energydash.actor.MessageStorage.StoredConversation
 import at.energydash.actor.MqttPublisher.{MqttCommand, MqttPublish}
 import at.energydash.actor.commands.EmailCommand
 import at.energydash.config.Config
+import at.energydash.domain.MyPostgresTest
 import at.energydash.domain.dao.model.TenantConfig
 import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository, SlickTenantConfigRepository}
 import at.energydash.domain.email.ConfiguredMailer

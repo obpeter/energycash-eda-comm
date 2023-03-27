@@ -8,7 +8,7 @@ import at.energydash.actor.commands.EmailCommand
 import at.energydash.config.Config
 import at.energydash.domain.dao.model.TenantConfig
 import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository}
-import at.energydash.domain.email.EmailService.{EmailModel, SendEmailCommand, SendEmailResponse}
+import at.energydash.domain.email.EmailService.{EmailModel, EmitSendEmailCommand, SendEmailCommand, SendEmailResponse}
 import at.energydash.model.EbMsMessage
 import org.jvnet.mock_javamail.{Mailbox, MockTransport}
 import org.scalatest.matchers.should.Matchers
@@ -47,7 +47,7 @@ class EmailServiceSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
       val messageStore = createTestProbe[MessageStorage.Command[_]]()
       val replyProbe = createTestProbe[EmailCommand]()
 
-      val mailCommand = SendEmailCommand(mailModel, replyProbe.ref)
+      val mailCommand = SendEmailCommand(mailModel, "email.com", replyProbe.ref)
 
       val emailService = spawn(FetchMailActor(tenantConfig, messageStore.ref, emailRepo))
       emailService ! mailCommand

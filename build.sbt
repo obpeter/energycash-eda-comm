@@ -63,7 +63,8 @@ lazy val root = (project in file("."))
       "org.scalatest" %% "scalatest" % "3.2.14",
       "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion,
-      "org.jvnet.mock-javamail" % "mock-javamail" % "1.12"
+      "org.jvnet.mock-javamail" % "mock-javamail" % "1.12",
+      "com.typesafe.slick" %% "slick-testkit" % slickVersion,
     ).map(_ % Test),
 
     libraryDependencies ++= Seq(

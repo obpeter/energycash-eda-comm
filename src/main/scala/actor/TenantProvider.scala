@@ -1,7 +1,7 @@
 package at.energydash
 package actor
 
-import domain.email.EmailService.{EmailModel, SendEmailCommand, SendErrorResponse}
+import domain.email.EmailService.{EmailModel, EmitSendEmailCommand, SendEmailCommand, SendErrorResponse}
 
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
@@ -51,7 +51,7 @@ class TenantProvider(supervisor: ActorRef[MqttCommand], messageStore: ActorRef[M
         case DistributeMail(tenant, mail, replyTo) =>
           context.log.debug(s"Distribute Mail from ${tenant} to ${mail.toEmail}")
           tenantActors.get(tenant.toUpperCase()) match {
-            case Some(a) => a ! SendEmailCommand(mail, replyTo)
+            case Some(a) => a ! EmitSendEmailCommand(mail, replyTo)
             case None => replyTo ! SendErrorResponse(tenant, "Tenant not registered")
           }
           Behaviors.same

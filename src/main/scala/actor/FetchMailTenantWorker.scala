@@ -11,7 +11,7 @@ import at.energydash.actor.MqttPublisher.MqttCommand
 import at.energydash.config.Config
 import at.energydash.domain.dao.model.TenantConfig
 import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository}
-import at.energydash.domain.email.EmailService.SendEmailCommand
+import at.energydash.domain.email.EmailService.{EmitSendEmailCommand, SendEmailCommand}
 
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration, MILLISECONDS, SECONDS}
 
@@ -46,10 +46,10 @@ class FetchMailTenantWorker(timers: TimerScheduler[EmailCommand],
             mailActor ! FetchEmailCommand(tenant.tenant, "", mqttPublisher)
             Behaviors.same
 
-          case msg@SendEmailCommand(_, _) =>
-            context.log.debug(s"Forward mail to Mail Actor ${msg.email.toEmail}")
+          case EmitSendEmailCommand(email, replyTo) =>
+            context.log.debug(s"Forward mail to Mail Actor ${email.toEmail}")
 
-            mailActor ! msg
+            mailActor ! SendEmailCommand(email, tenant.domain, replyTo)
             timers.startSingleTimer(Refresh, 1.minute)
 
             Behaviors.same

@@ -60,6 +60,33 @@ class MessageStorageSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       found.conversation.conversationId shouldBe "AT3241234124312432143"
       found.conversation.messages.size shouldBe 2
     }
+
+    "Generate MessageID and RequestID" in {
+      val probe = createTestProbe[PrepareMessageActor.PrepareMessageResult]()
+      val storage = spawn(PrepareMessageActor())
+      val message = EbMsMessage(
+        None,
+        "AT3241234124312432143",
+        "AT100130",
+        "RC003000",
+        EbMsMessageType.ENERGY_FILE_RESPONSE,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None
+      )
+
+      storage ! PrepareMessageActor.PrepareMessage(message, probe.ref)
+      val prepared = probe.expectMessageType[PrepareMessageActor.Prepared]
+      prepared.message.messageId.get should endWith("0000000001")
+
+      storage ! PrepareMessageActor.PrepareMessage(message, probe.ref)
+      val prepared1 = probe.expectMessageType[PrepareMessageActor.Prepared]
+      prepared1.message.messageId.get should endWith("0000000002")
+    }
   }
 
   override protected def afterAll(): Unit = {

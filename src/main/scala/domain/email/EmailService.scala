@@ -19,7 +19,8 @@ object EmailService {
   case class EmailModel(tenant: String, toEmail: String, subject: String, attachment: ByteString, data: EbMsMessage)
 //  sealed trait Command
 
-  case class SendEmailCommand(email: EmailModel, replyTo: ActorRef[EmailCommand]) extends EmailCommand {
+  case class EmitSendEmailCommand(email: EmailModel, replyTo: ActorRef[EmailCommand]) extends EmailCommand
+  case class SendEmailCommand(email: EmailModel, domain: String, replyTo: ActorRef[EmailCommand]) extends EmailCommand {
     def sendEmail(mailer: Mailer)(implicit ex: ExecutionContext): Future[Unit] = {
       println("About to send Email")
 
@@ -31,7 +32,6 @@ object EmailService {
 //        .ssl(true)()
 
       val myFormatObj = DateTimeFormatter.ofPattern("yyyyMMdd")
-      val domain = Config.emailDomain(email.tenant)
       val envelope = Envelope
         .from(new InternetAddress(s"${email.tenant}@${domain}"))
         .to(new InternetAddress(s"${email.toEmail}@${domain}"))
