@@ -18,6 +18,9 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write    
 
     steps:
     - uses: actions/checkout@v3
@@ -37,6 +40,3 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}      
     - name: Run Dockerize
       run: sbt docker:publish
-      # Optional: This step uploads information to the GitHub dependency graph and unblocking Dependabot alerts for the repository
-    - name: Upload dependency graph
-      uses: scalacenter/sbt-dependency-submission@ab086b50c947c9774b70f39fc7f6e20ca2706c91
