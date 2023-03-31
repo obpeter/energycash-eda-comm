@@ -12,6 +12,7 @@ import at.energydash.model.enums.EbMsProcessType
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
 import scala.util.Success
 
 
@@ -33,7 +34,7 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
     .log("fileInfo", info => logger.info(s"$info"))
     .map(info => MessageHelper
       .getEdaMessageFromHeader(EbMsProcessType.withName(info.processName))
-      .fromXML(scala.xml.XML.load(info.bodyPart.entity.dataBytes.runWith(StreamConverters.asInputStream())))).collect {
+      .fromXML(scala.xml.XML.load(info.bodyPart.entity.dataBytes.runWith(StreamConverters.asInputStream(15.seconds))))).collect {
         case Success(p) => p
       }
     .map(p => {
