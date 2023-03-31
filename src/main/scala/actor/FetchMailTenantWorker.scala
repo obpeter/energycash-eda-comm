@@ -32,7 +32,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EmailCommand],
     Behaviors.setup { context => {
       context.log.info("Setup Tenant Worker")
 
-      timers.startTimerWithFixedDelay(TimerKey, Refresh, 1.minute /*interval + Duration(rand.nextLong(interval.toMillis) / 2, MILLISECONDS)*/)
+      timers.startTimerWithFixedDelay(TimerKey, Refresh, interval + Duration(rand.nextLong(interval.toMillis) / 2, MILLISECONDS))
       val mailActor = context.spawn(FetchMailActor(tenant, messageStore, mailRepo), name = "mail-actor")
 
       def activated(mailActor: ActorRef[EmailCommand]): Behavior[EmailCommand] = {

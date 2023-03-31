@@ -102,6 +102,7 @@ lazy val dockerSettings = Seq(
   dockerRepository := Some("ghcr.io"),
   dockerUsername := Some("vfeeg-development"),
   dockerUpdateLatest := true,
+  dockerExposedPorts := Seq(8880),
   dockerCommands := dockerCommands.value.filterNot {
     case ExecCmd("ENTRYPOINT", _) => true
     case cmd => false
