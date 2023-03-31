@@ -69,7 +69,7 @@ class FetchMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[MessageS
                       }
                     } yield mm
                 }).onComplete {
-                  case Success(m: List[EdaMessage[_]]) => req.replyTo ! MqttPublish(req.tenant, m, context.self)
+                  case Success(m: List[EdaMessage[_]]) => req.replyTo ! MqttPublish(req.tenant, m)
                   case Failure(e) => req.replyTo ! MqttPublishError(req.tenant, e.getMessage)
                 }
             }

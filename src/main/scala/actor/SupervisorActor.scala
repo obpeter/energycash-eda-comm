@@ -10,16 +10,36 @@ import domain.stream.MqttRequestStream
 import akka.Done
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Behavior}
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.Route
 import akka.stream.alpakka.mqtt.scaladsl.MqttSink
 import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS}
 import akka.stream.scaladsl.Sink
 import akka.util.Timeout
+import at.energydash.actor.SupervisorActor.startHttpServer
+import at.energydash.actor.routes.ServiceRoute
+import at.energydash.services.FileService
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.util.{Failure, Success}
 
 object SupervisorActor {
+  private def startHttpServer(routes: Route)(implicit system: ActorSystem[_]): Unit = {
+    // Akka HTTP still needs a classic ActorSystem to start
+    import system.executionContext
+
+    val futureBinding = Http().newServerAt("localhost", 8880).bind(routes)
+    futureBinding.onComplete {
+      case Success(binding) =>
+        val address = binding.localAddress
+        system.log.info("Server online at http://{}:{}/", address.getHostString, address.getPort)
+      case Failure(ex) =>
+        system.log.error("Failed to bind HTTP endpoint, terminating system", ex)
+        system.terminate()
+    }
+  }
 
   def apply(): Behavior[Command] =
     Behaviors.setup { implicit ctx =>
@@ -43,6 +63,11 @@ object SupervisorActor {
                 MqttEmail.mqttSource,
                 createResponseSink(s"${Config.getMqttMailConfig.consumerId}-response"),
                 createResponseSink(s"${Config.getMqttMailConfig.consumerId}-response-error"))
+
+            val fileService = FileService(system, mqttPublisher)
+            val routes = new ServiceRoute(fileService)
+            startHttpServer(routes.adminRoutes)
+
             Behaviors.same
           case Shutdown =>
 //            ctx.stop()

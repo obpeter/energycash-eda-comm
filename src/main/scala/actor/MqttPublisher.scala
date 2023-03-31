@@ -24,7 +24,7 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 object MqttPublisher {
   import at.energydash.model.JsonImplicit._
   trait MqttCommand
-  case class MqttPublish(tenant: String, mails: List[EdaMessage[_]], mailProvider: ActorRef[EmailCommand]) extends MqttCommand
+  case class MqttPublish(tenant: String, mails: List[EdaMessage[_]]/*, mailProvider: ActorRef[EmailCommand]*/) extends MqttCommand
   case class MqttPublishError(tenant: String, message: String) extends MqttCommand
 
   def apply(): Behavior[MqttCommand] =
@@ -42,7 +42,7 @@ object MqttPublisher {
 
       def process(): Behavior[MqttCommand] =
         Behaviors.receiveMessage {
-          case MqttPublish(tenant, response, mailActor) =>
+          case MqttPublish(tenant, response) =>
             Source(response)
               .map(x => convertCPRequestMessageToJson(x))
               .to(responseSink)
