@@ -5,15 +5,16 @@ import akka.Done
 import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.http.scaladsl.model.Multipart
 import akka.stream.Materializer
-import akka.stream.scaladsl.{Sink, StreamConverters}
+import akka.stream.scaladsl.{Sink, Source, StreamConverters}
 import at.energydash.actor.MqttPublisher.{MqttCommand, MqttPublish}
 import at.energydash.domain.eda.message.MessageHelper
 import at.energydash.model.enums.EbMsProcessType
 import com.typesafe.scalalogging.StrictLogging
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.DurationInt
-import scala.util.Success
+import scala.util.{Failure, Success}
+import scala.xml.InputSource
 
 
 trait FileService {
@@ -28,15 +29,24 @@ object FileService {
     new FileServiceImpl(system, mqttPublisher)
 }
 class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCommand])(implicit val mat: Materializer) extends FileService with StrictLogging {
+  import system._
   def handleUpload(formData: Multipart.FormData): Future[Done] = {
   formData.parts
     .map(part => FileInfo(part))
-    .log("fileInfo", info => logger.info(s"$info"))
-    .map(info => MessageHelper
+    .log("fileInfo", info => logger.info(s"$info Size: ${info.bodyPart.entity.withoutSizeLimit()}"))
+    .mapAsync(1)(info => info.bodyPart.toStrict(5.seconds).map { body =>  MessageHelper
       .getEdaMessageFromHeader(EbMsProcessType.withName(info.processName))
-      .fromXML(scala.xml.XML.load(info.bodyPart.entity.dataBytes.runWith(StreamConverters.asInputStream(15.seconds))))).collect {
-        case Success(p) => p
-      }
+      .fromXML(scala.xml.XML.load(body.entity.dataBytes.runWith(StreamConverters.asInputStream(15.seconds))))
+    })
+    .collect {
+      case Success(p) => p
+    }
+//    .map(info => MessageHelper
+//      .getEdaMessageFromHeader(EbMsProcessType.withName(info.processName))
+//      .fromXML(scala.xml.XML.load(info.bodyPart.entity.dataBytes.runWith(StreamConverters.asInputStream(15.seconds))))).collect {
+//        case Success(p) => p
+////        case Failure(exception) => logger.error(exception.getMessage)
+//      }
     .map(p => {
       mqttPublisher ! MqttPublish("", List(p))
     })
