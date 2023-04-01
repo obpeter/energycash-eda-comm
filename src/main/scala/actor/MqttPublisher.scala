@@ -6,6 +6,7 @@ import domain.email.Fetcher.MailMessage
 import akka.Done
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
+import akka.stream.Attributes
 import akka.stream.alpakka.mqtt.scaladsl.MqttSink
 import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS}
 import akka.stream.scaladsl.{Sink, Source}
@@ -19,6 +20,7 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
 object MqttPublisher {
@@ -36,17 +38,19 @@ object MqttPublisher {
       def convertCPRequestMessageToJson(x: EdaMessage[_]): MqttMessage = x match {
         case x: CPRequestZPListMessage => MqttMessage(s"${Config.cpTopic}/${x.message.receiver.toLowerCase}", ByteString(x.asJson.deepDropNullValues.noSpaces))
         case x: CMRequestRegistrationOnlineMessage => MqttMessage(s"${Config.cmTopic}/${x.message.receiver.toLowerCase}", ByteString(x.asJson.deepDropNullValues.noSpaces))
-        case x: ConsumptionRecordMessage => MqttMessage(s"${Config.energyTopic}/${x.message.receiver.toLowerCase}", ByteString(x.asJson.deepDropNullValues.noSpaces))
+        case x: ConsumptionRecordMessage => MqttMessage(s"${Config.energyTopic}/${x.message.receiver.toLowerCase}", ByteString(x.asJson.deepDropNullValues.noSpaces)).withQos(MqttQoS.atMostOnce)
         case x: EdaErrorMessage => MqttMessage(s"${Config.errorTopic}/${x.message.receiver.toLowerCase}", ByteString(x.asJson.deepDropNullValues.noSpaces))
       }
 
       def process(): Behavior[MqttCommand] =
         Behaviors.receiveMessage {
           case MqttPublish(tenant, response) =>
-            Source(response)
+            Source(response)//.throttle(12, 1.minute)
               .map(x => convertCPRequestMessageToJson(x))
-              .to(responseSink)
-              .run()
+//              .log("mqtt", x => {
+//                println(x.toString)
+//              })
+              .runWith(responseSink)
             Behaviors.same
           case MqttPublishError(tenantId, msg) =>
             ctx.log.info(s"Error ${tenantId} ${msg}")
