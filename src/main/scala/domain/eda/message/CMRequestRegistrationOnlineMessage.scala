@@ -2,8 +2,8 @@ package at.energydash
 package domain.eda.message
 
 import akka.util.ByteString
-import at.energydash.model.{EbMsMessage, ResponseData}
-import at.energydash.model.enums.{EbMsMessageType, MeterDirectionType}
+import model.{EbMsMessage, ResponseData}
+import model.enums.{EbMsMessageType, MeterDirectionType}
 import scalaxb.{Helper, `package`}
 import scalaxb.`package`.toXML
 import xmlprotocol.{AddressType, CMNotification, CMRequest, CONSUMPTION, DValue2, DocumentMode, DocumentModeType, ECNumber, GENERATION, MarketParticipantDirectoryType4, MarketParticipantDirectoryType6, Number01Value2, Number01u4610, ProcessDirectoryType4, ProcessDirectoryType6, QHValue, ReqType, RoutingAddress, RoutingHeader, SIMU, SIMUValue, SchemaVersionType5}

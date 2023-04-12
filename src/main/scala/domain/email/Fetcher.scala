@@ -1,11 +1,12 @@
 package at.energydash
 package domain.email
 
-import at.energydash.config.Config
-import at.energydash.domain.dao.model.EmailOutbox
-import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository}
-import at.energydash.domain.eda.message.{EdaErrorMessage, EdaMessage, MessageHelper}
-import at.energydash.domain.email.Fetcher.MailerResponseValue
+import config.Config
+import domain.dao.model.EmailOutbox
+import domain.dao.spec.{Db, SlickEmailOutboxRepository}
+import domain.eda.message.{EdaErrorMessage, EdaMessage, MessageHelper}
+import domain.email.Fetcher.MailerResponseValue
+
 import at.energydash.model.EbMsMessage
 import at.energydash.model.enums.{EbMsMessageType, EbMsProcessType}
 import com.typesafe.config.{Config => AkkaConfig}
@@ -13,15 +14,11 @@ import com.typesafe.config.{Config => AkkaConfig}
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataOutputStream, File, FileOutputStream}
 import org.slf4j.LoggerFactory
 
-import java.nio.ByteBuffer
 import java.sql.{Blob, Date, Timestamp}
 import javax.mail.internet.{MimeBodyPart, MimeMultipart}
 import javax.mail.{Flags, Folder, Message, Multipart, Part, Session, Store}
 import javax.mail.search.{AndTerm, FlagTerm, MessageIDTerm, SubjectTerm}
-import javax.sql.rowset.serial.SerialBlob
-import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
-import scala.xml.XML
 
 class Fetcher {
 

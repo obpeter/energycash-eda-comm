@@ -2,7 +2,7 @@ package at.energydash
 package actor
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import at.energydash.actor.FetchMailActor.FetchEmailCommand
+import at.energydash.actor.TenantMailActor.FetchEmailCommand
 import at.energydash.actor.MessageStorage.StoredConversation
 import at.energydash.actor.MqttPublisher.{MqttCommand, MqttPublish}
 import at.energydash.actor.commands.EmailCommand
@@ -67,7 +67,7 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
   "Fetch Mail Actor" should {
     "handle Email Success Messages" in {
       val messageStoreProbe = createTestProbe[MessageStorage.Command[_]]()
-      val mailActor = spawn(FetchMailActor(tenantConfig, messageStoreProbe.ref, emailRepo))
+      val mailActor = spawn(TenantMailActor(tenantConfig, messageStoreProbe.ref, emailRepo))
       val replyActor = createTestProbe[MqttCommand]()
 
       perpareEmail("myeeg")
@@ -87,7 +87,7 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
     "handle Error EmailMessages" in {
       val messageStoreProbe = createTestProbe[MessageStorage.Command[_]]()
-      val mailActor = spawn(FetchMailActor(tenantConfig, messageStoreProbe.ref, emailRepo))
+      val mailActor = spawn(TenantMailActor(tenantConfig, messageStoreProbe.ref, emailRepo))
       val replyActor = createTestProbe[MqttCommand]()
 
       perpareErrorEmail("myeeg")

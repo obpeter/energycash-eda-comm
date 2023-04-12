@@ -4,7 +4,7 @@ package domain.eda.message
 import model.{EbMsMessage, Meter}
 import model.enums.{EbMsMessageType, MeterDirectionType}
 
-import at.energydash.domain.eda.message.{EdaMessage, EdaResponseType}
+import domain.eda.message.{EdaMessage, EdaResponseType}
 import scalaxb.Helper
 import xmlprotocol.{AddressType, CPNotification, CPRequest, DocumentModeType, ECMPList, ECNumber, MarketParticipantDirectoryType8, Number01Value2, Number01u4612Value, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SIMUValue, SchemaVersionType7}
 

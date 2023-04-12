@@ -1,37 +1,31 @@
 package at.energydash
 package actor
 
+import actor.MqttPublisher.{MqttCommand, MqttPublish, MqttPublishError}
 import actor.commands.EmailCommand
-import domain.email.EmailService.{FetchEmailResponse, SendEmailCommand, SendEmailResponse, SendErrorResponse}
-import domain.email.Fetcher.{ErrorMessage, FetcherContext, MailContent, MailMessage, MailerResponseValue}
+import domain.dao.model.TenantConfig
+import domain.dao.spec.SlickEmailOutboxRepository
+import domain.eda.message.EdaMessage
+import domain.email.EmailService.{SendEmailCommand, SendEmailResponse, SendErrorResponse}
+import domain.email.Fetcher.{ErrorMessage, FetcherContext, MailContent, MailMessage}
 import domain.email.{ConfiguredMailer, Fetcher}
 
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.Timeout
-import at.energydash.actor.MqttPublisher.{MqttCommand, MqttPublish, MqttPublishError}
-import org.slf4j.Logger
-
-import javax.mail.Session
-import at.energydash.config.Config
-import at.energydash.domain.dao.model.TenantConfig
-import at.energydash.domain.dao.spec.SlickEmailOutboxRepository
-import at.energydash.domain.eda.message.{EdaErrorMessage, EdaMessage}
-import at.energydash.model.EbMsMessage
-import at.energydash.model.enums.EbMsMessageType
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-class FetchMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[MessageStorage.Command[_]], mailRepo: SlickEmailOutboxRepository) {
+class TenantMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[MessageStorage.Command[_]], mailRepo: SlickEmailOutboxRepository) {
 
-  import FetchMailActor._
+  import TenantMailActor._
 
   implicit val timeout: Timeout = Timeout(5.seconds)
-  var logger: Logger = LoggerFactory.getLogger(classOf[FetchMailActor])
+  var logger: Logger = LoggerFactory.getLogger(classOf[TenantMailActor])
 
   var tenant: String = tenantConfig.tenant
 //  val config: com.typesafe.config.Config = Config.getMailSessionConfig(tenant)
@@ -40,8 +34,7 @@ class FetchMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[MessageS
   implicit val mailContext = FetcherContext(tenant, mailSession, mailRepo)
 
   def start: Behavior[EmailCommand] = Behaviors.setup[EmailCommand] { context => {
-    import context.executionContext
-    import context.system
+    import context.{executionContext, system}
 
     def work(): Behavior[EmailCommand] = {
       Behaviors.receiveMessage {
@@ -98,7 +91,7 @@ class FetchMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[MessageS
   }}
 }
 
-object FetchMailActor {
+object TenantMailActor {
   case class FetchEmailCommand(tenant: String, subject: String, replyTo: ActorRef[MqttCommand]) extends EmailCommand {
     import com.typesafe.config.Config
     def fetchEmail(searchTerm: String)(implicit ex: ExecutionContext, ctx: FetcherContext): Try[List[MailContent]] = {
@@ -115,6 +108,6 @@ object FetchMailActor {
   }
 
   def apply(tenantConfig: TenantConfig, messageStore: ActorRef[MessageStorage.Command[_]], mailRepo: SlickEmailOutboxRepository): Behavior[EmailCommand] = {
-    new FetchMailActor(tenantConfig, messageStore, mailRepo).start
+    new TenantMailActor(tenantConfig, messageStore, mailRepo).start
   }
 }

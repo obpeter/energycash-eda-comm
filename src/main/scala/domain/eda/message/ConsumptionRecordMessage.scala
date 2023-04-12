@@ -4,7 +4,7 @@ package domain.eda.message
 import model.{EbMsMessage, Energy, EnergyData, EnergyValue, Meter, ResponseData}
 
 import akka.util.ByteString
-import at.energydash.model.enums.EbMsMessageType
+import model.enums.EbMsMessageType
 import scalaxb.Helper
 import xmlprotocol.{CMNotification, CMRequest, ConsumptionRecord, ConsumptionRecordVersion, DATEN_CRMSG, DocumentMode, DocumentModeType, MarketParticipantDirectory, MarketParticipantDirectoryType2, MarketParticipantDirectoryType8, Number01Value2, Number01u4630, ProcessDirectoryType2, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SIMU, SIMUValue}
 

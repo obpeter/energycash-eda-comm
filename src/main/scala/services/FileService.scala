@@ -6,9 +6,9 @@ import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.http.scaladsl.model.Multipart
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Sink, Source, StreamConverters}
-import at.energydash.actor.MqttPublisher.{MqttCommand, MqttPublish}
-import at.energydash.domain.eda.message.MessageHelper
-import at.energydash.model.enums.EbMsProcessType
+import actor.MqttPublisher.{MqttCommand, MqttPublish}
+import domain.eda.message.MessageHelper
+import model.enums.EbMsProcessType
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.{ExecutionContext, Future}

@@ -1,23 +1,22 @@
 package at.energydash
 package domain.email
 
+import actor.commands.EmailCommand
+import actor.{MessageStorage, TenantMailActor}
+import domain.dao.model.TenantConfig
+import domain.dao.spec.{Db, SlickEmailOutboxRepository}
+import domain.email.EmailService.{EmailModel, SendEmailCommand, SendEmailResponse}
+import at.energydash.model.EbMsMessage
+
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.util.ByteString
-import at.energydash.actor.{FetchMailActor, MessageStorage}
-import at.energydash.actor.commands.EmailCommand
-import at.energydash.config.Config
-import at.energydash.domain.dao.model.TenantConfig
-import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository}
-import at.energydash.domain.email.EmailService.{EmailModel, EmitSendEmailCommand, SendEmailCommand, SendEmailResponse}
-import at.energydash.model.EbMsMessage
 import org.jvnet.mock_javamail.{Mailbox, MockTransport}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.Properties
 import javax.mail.Provider
-import javax.mail.internet.{InternetAddress, MimeMessage, MimeMultipart}
-import scala.concurrent.ExecutionContext.Implicits.global
+import javax.mail.internet.{InternetAddress, MimeMultipart}
 import scala.language.postfixOps
 
 class MockedSMTPProvider
@@ -49,7 +48,7 @@ class EmailServiceSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
 
       val mailCommand = SendEmailCommand(mailModel, "email.com", replyProbe.ref)
 
-      val emailService = spawn(FetchMailActor(tenantConfig, messageStore.ref, emailRepo))
+      val emailService = spawn(TenantMailActor(tenantConfig, messageStore.ref, emailRepo))
       emailService ! mailCommand
 
       replyProbe.expectMessage(SendEmailResponse(EbMsMessage(None, "conversationId", "sender", "receiver")))

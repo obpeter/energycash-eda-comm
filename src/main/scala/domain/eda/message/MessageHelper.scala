@@ -3,9 +3,9 @@ package domain.eda.message
 
 import model.EbMsMessage
 
-import at.energydash.domain.util.zip.CRC8
-import at.energydash.model.enums.EbMsMessageType.{EEG_BASE_DATA, ENERGY_FILE_RESPONSE, ENERGY_SYNC_REQ, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT, ZP_LIST}
-import at.energydash.model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_LIST_METERINGPOINTS, PROCESS_REGISTER_ONLINE, REQ_PROCESS_METERINGPOINTS_VALUE}
+import domain.util.zip.CRC8
+import model.enums.EbMsMessageType.{EEG_BASE_DATA, ENERGY_FILE_RESPONSE, ENERGY_SYNC_REQ, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT, ZP_LIST}
+import model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_LIST_METERINGPOINTS, PROCESS_REGISTER_ONLINE, REQ_PROCESS_METERINGPOINTS_VALUE}
 import com.google.common.io.BaseEncoding
 
 import java.text.SimpleDateFormat

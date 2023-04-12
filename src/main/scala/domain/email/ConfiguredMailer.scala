@@ -1,14 +1,15 @@
 package at.energydash
 package domain.email
 
-import at.energydash
 import courier.Mailer
-import at.energydash.domain.dao.model.TenantConfig
+import domain.dao.model.TenantConfig
 
-import java.util
+import at.energydash.config.{Config => AppConfig}
+import com.typesafe.config.Config
+import at.energydash.config.ConfigExtensions
+
 import java.util.Properties
 import javax.mail.{PasswordAuthentication, Session}
-import scala.collection.immutable.HashMap
 
 object ConfiguredMailer {
 
@@ -35,7 +36,7 @@ object ConfiguredMailer {
 //    println("------------------Email Map: ")
 //    println(map)
 
-    val mergedMap:Map[String, Object] = config.toMap() ++ energydash.config.Config.getDomain(config.domain)
+    val mergedMap:Map[String, Object] = config.toMap() ++ AppConfig.getDomain(config.domain)
 
     properties.putAll(mergedMap.asJava)
 
@@ -76,5 +77,27 @@ object ConfiguredMailer {
 
   def createMailerFromSession(session: Session): Mailer = {
     Mailer(session)
+  }
+
+  def getAdminSession(config: Config): Session = {
+    //First convert the config to a java.util.Properties
+    import scala.jdk.CollectionConverters._
+
+    val properties = new Properties()
+    val map = config.getConfig("javaxmail").entrySet().asScala.map(e => e.getKey -> e.getValue.unwrapped()).toMap
+
+    properties.putAll(map.asJava)
+
+    def authenticatorFromConfig(config: Config) = {
+      new javax.mail.Authenticator() {
+        override def getPasswordAuthentication() = new PasswordAuthentication(config.getString("username"), config.getString("password"))
+      }
+    }
+
+    val configAuthenticator = config.getOptionConfigured("authenticator", authenticatorFromConfig)
+
+    //Then make the session
+    configAuthenticator.fold(Session.getInstance(properties))(
+      authenticator => Session.getInstance(properties, authenticator))
   }
 }

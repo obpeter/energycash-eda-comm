@@ -9,16 +9,17 @@ import domain.stream.MqttRequestStream
 
 import akka.Done
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Behavior}
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
 import akka.stream.alpakka.mqtt.scaladsl.MqttSink
 import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS}
 import akka.stream.scaladsl.Sink
 import akka.util.Timeout
-import at.energydash.actor.SupervisorActor.startHttpServer
-import at.energydash.actor.routes.ServiceRoute
-import at.energydash.services.FileService
+import actor.SupervisorActor.startHttpServer
+import actor.routes.ServiceRoute
+import services.FileService
+
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 import scala.concurrent.duration.DurationInt
@@ -39,6 +40,10 @@ object SupervisorActor {
         system.log.error("Failed to bind HTTP endpoint, terminating system", ex)
         system.terminate()
     }
+  }
+
+  private def startGRPCServer(tenantProvider: ActorRef[EmailCommand])(implicit system: ActorSystem[_]) = {
+    AdminServer.apply(tenantProvider, system)
   }
 
   def apply(): Behavior[Command] =
@@ -67,6 +72,7 @@ object SupervisorActor {
             val fileService = FileService(system, mqttPublisher)
             val routes = new ServiceRoute(fileService)
             startHttpServer(routes.adminRoutes)
+            startGRPCServer(tenantProvider)
 
             Behaviors.same
           case Shutdown =>

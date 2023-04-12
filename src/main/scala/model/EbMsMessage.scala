@@ -1,12 +1,12 @@
 package at.energydash
 package model
 
-import at.energydash.model.enums.MeterDirectionType.MeterDirectionType
-import at.energydash.model.enums.EbMsMessageType.EbMsMessageType
+import model.JsonImplicit._
+import model.enums.EbMsMessageType
+import model.enums.EbMsMessageType.EbMsMessageType
+import model.enums.MeterDirectionType.MeterDirectionType
 
 import java.util.Date
-import JsonImplicit._
-import at.energydash.model.enums.EbMsMessageType
 
 case class ResponseData(MeteringPoint: Option[String],
                         ResponseCode: Seq[BigInt])
@@ -39,8 +39,8 @@ case class EbMsMessage(
 
 object JsonImplicit {
 
-  import io.circe.{Encoder, Decoder}
   import io.circe.syntax._
+  import io.circe.{Decoder, Encoder}
 
   implicit val dateTimeEncoder: Encoder[Date] = Encoder.instance(a => a.getTime.asJson)
   implicit val dateTimeDecoder: Decoder[Date] = Decoder.instance(a => a.as[Long].map(new Date(_)))

@@ -11,11 +11,11 @@ import akka.stream.alpakka.mqtt.scaladsl.MqttSink
 import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
-import at.energydash.actor.FetchMailActor.DeleteEmailCommand
-import at.energydash.actor.commands.EmailCommand
-import at.energydash.config.Config
-import at.energydash.domain.eda.message.{CMRequestRegistrationOnlineMessage, CPRequestZPListMessage, ConsumptionRecordMessage, EdaErrorMessage, EdaMessage}
-import at.energydash.model.EbMsMessage
+import actor.TenantMailActor.DeleteEmailCommand
+import actor.commands.EmailCommand
+import config.Config
+import domain.eda.message.{CMRequestRegistrationOnlineMessage, CPRequestZPListMessage, ConsumptionRecordMessage, EdaErrorMessage, EdaMessage}
+import model.EbMsMessage
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
@@ -24,7 +24,7 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
 object MqttPublisher {
-  import at.energydash.model.JsonImplicit._
+  import model.JsonImplicit._
   trait MqttCommand
   case class MqttPublish(tenant: String, mails: List[EdaMessage[_]]/*, mailProvider: ActorRef[EmailCommand]*/) extends MqttCommand
   case class MqttPublishError(tenant: String, message: String) extends MqttCommand

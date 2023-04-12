@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.{Multipart, StatusCodes}
 import akka.http.scaladsl.server.Directives.pathPrefix
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.Directives._
-import at.energydash.services.FileService
+import services.FileService
 
 class ServiceRoute(fileService: FileService)(implicit val system: ActorSystem[_]) {
 

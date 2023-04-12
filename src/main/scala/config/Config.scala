@@ -4,7 +4,6 @@ package config
 import com.typesafe.config.{ConfigFactory, Config => AkkaConfig}
 
 import java.time.Duration
-import scala.concurrent.duration.FiniteDuration
 
 object Config {
   import scala.jdk.CollectionConverters._
@@ -12,10 +11,11 @@ object Config {
   case class MqttMailConfig(url: String, topic: String, qos: Int, consumerId: String)
 
 //  lazy val config = ConfigFactory.load("application-test.conf")
-  lazy val config = ConfigFactory.load()
+  lazy val config = ConfigFactory.load("application.conf")
   config.checkValid(ConfigFactory.defaultReference)
 
   lazy val emailPersistInbox = config.getString("epmsmail.mail.inbox")
+  lazy val adminSmtpConfig: AkkaConfig = config.getConfig(s"epmsmail.admin")
   lazy val emailDomain = (tenant: String) => config.getString(s"epmsmail.mail.${tenant}.domain")
   lazy val interval: String => Duration = (domain: String) => config.getDuration(s"epmsmail.mail.${domain}.interval")
   def getMqttMailConfig: MqttMailConfig = MqttMailConfig(

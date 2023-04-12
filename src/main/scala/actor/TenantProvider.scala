@@ -5,11 +5,11 @@ import domain.email.EmailService.{EmailModel, EmitSendEmailCommand, SendEmailCom
 
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
-import at.energydash.actor.FetchMailActor.DeleteEmailCommand
-import at.energydash.actor.MqttPublisher.MqttCommand
-import at.energydash.actor.commands.{Command, EmailCommand}
-import at.energydash.config.Config
-import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository, SlickTenantConfigRepository}
+import actor.TenantMailActor.DeleteEmailCommand
+import actor.MqttPublisher.MqttCommand
+import actor.commands.{Command, EmailCommand}
+import config.Config
+import domain.dao.spec.{Db, SlickEmailOutboxRepository, SlickTenantConfigRepository}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Await

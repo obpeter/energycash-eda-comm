@@ -1,4 +1,5 @@
 import com.typesafe.sbt.packager.docker._
+import scalapb.GeneratorOption._
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
@@ -6,7 +7,8 @@ ThisBuild / scalaVersion := "2.13.9"
 
 lazy val emilVersion     = "0.12.0"
 lazy val akkaHttpVersion = "10.2.6"
-lazy val akkaVersion     = "2.6.19"
+//lazy val akkaVersion     = "2.6.19"
+lazy val akkaVersion     = "2.7.0"
 lazy val courierVersion  = "3.0.1"
 lazy val alpakkaVersion  = "4.0.0"
 lazy val circeVersion    = "0.14.3"
@@ -17,6 +19,7 @@ val appVersion      = "0.0.1"
 lazy val root = (project in file("."))
   .enablePlugins(ScalaxbPlugin)
   .enablePlugins(JavaAppPackaging)
+  .enablePlugins(AkkaGrpcPlugin)
   .settings(dockerSettings)
   .settings(
     name := "EmailClient",
@@ -27,10 +30,16 @@ lazy val root = (project in file("."))
 
     resolvers += "repo.jenkins-ci.org" at "https://repo.jenkins-ci.org/releases",
 
+    akkaGrpcGeneratedSources := Seq(AkkaGrpc.Client, AkkaGrpc.Server),
+
+//    akkaGrpcCodeGeneratorSettings / target := crossTarget.value / "src_managed1" /*/ Defaults.nameForSrc(configuration.value.name)*/,
+//
+//    akkaGrpcCodeGeneratorSettings := akkaGrpcCodeGeneratorSettings.value.filterNot(_ == "flat_package"),
+
     libraryDependencies ++= Seq(
       "com.github.daddykotex" %% "courier" % courierVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-      "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
+//      "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
@@ -38,7 +47,7 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-serialization-jackson"  % akkaVersion,
       "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % alpakkaVersion,
       "com.lightbend.akka" %% "akka-stream-alpakka-mqtt-streaming" % alpakkaVersion,
-      "com.enragedginger" %% "akka-quartz-scheduler" % "1.9.3-akka-2.6.x",
+//      "com.enragedginger" %% "akka-quartz-scheduler" % "1.9.3-akka-2.6.x",
 
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4",
       "ch.qos.logback" % "logback-classic" % "1.2.5",
@@ -79,7 +88,18 @@ lazy val root = (project in file("."))
       "org.postgresql" % "postgresql" % "42.2.5"
     ),
 
+//    Compile / PB.targets := Seq(
+//      scalapb.gen(FlatPackage) -> (Compile / akkaGrpcCodeGeneratorSettings / target).value
+//    ),
+
+//    Compile / akkaGrpcCodeGeneratorSettings / target := crossTarget.value / "src_managed" / "main" / "akka-grpc",
+
     Compile / scalaxb / scalaxbPackageName := "xmlprotocol",
+
+    Compile / managedSourceDirectories ++= Seq(
+      target.value / "scala-2.13" / "akka-grpc" / "main",
+      target.value / "scala-2.13" / "src_managed" / "main"
+    ),
 
     Test / javaOptions ++= Seq(s"-Dconfig.file=${sourceDirectory.value}/test/resources/application-test.conf"),
 

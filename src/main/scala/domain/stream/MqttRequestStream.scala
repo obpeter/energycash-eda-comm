@@ -1,21 +1,19 @@
 package at.energydash
 package domain.stream
 
-import akka.actor.typed.scaladsl.ActorContext
-import at.energydash.domain.email.{ConfiguredMailer, EmailService}
-import at.energydash.domain.eda.message.MessageHelper
-import at.energydash.model.EbMsMessage
-import at.energydash.actor.{MessageStorage, PrepareMessageActor}
+import domain.email.EmailService
+import domain.eda.message.MessageHelper
+import model.EbMsMessage
+import actor.{MessageStorage, PrepareMessageActor}
 import akka.{Done, NotUsed}
 import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.stream.alpakka.mqtt.MqttMessage
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.typed.scaladsl.ActorFlow
 import akka.util.{ByteString, Timeout}
-import at.energydash.actor.TenantProvider.DistributeMail
-import at.energydash.actor.commands.{Command, EmailCommand}
-import at.energydash.config.Config
-import at.energydash.domain.eda.message.MessageHelper.EDAMessageCodeToProcessCode
+import actor.TenantProvider.DistributeMail
+import actor.commands.EmailCommand
+import domain.eda.message.MessageHelper.EDAMessageCodeToProcessCode
 import io.circe.parser.decode
 import io.circe.generic.auto._
 import io.circe.syntax._
@@ -29,7 +27,7 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
                              messageStore: ActorRef[MessageStorage.Command[MessageStorage.AddMessageResult]])
                             (implicit system: ActorSystem[_]){
 
-  import at.energydash.model.JsonImplicit._
+  import model.JsonImplicit._
 
   implicit val timeout: Timeout = Timeout(15.seconds)
   implicit val ec = system.executionContext
