@@ -101,7 +101,7 @@ lazy val root = (project in file("."))
       target.value / "scala-2.13" / "src_managed" / "main"
     ),
 
-    Test / javaOptions ++= Seq(s"-Dconfig.file=${sourceDirectory.value}/test/resources/application-test.conf"),
+    Test / javaOptions ++= Seq(s"-Dconfig.file=${baseDirectory.value}/src/test/resources/application-test.conf"),
 
 //    Test / resourceDirectory := baseDirectory.value / "test-resources",
 
