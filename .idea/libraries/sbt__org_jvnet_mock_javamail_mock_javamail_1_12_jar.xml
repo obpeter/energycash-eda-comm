@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="sbt: org.jvnet.mock-javamail:mock-javamail:1.12:jar" external-system-id="SBT">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.cache/coursier/v1/https/repo.jenkins-ci.org/releases/org/jvnet/mock-javamail/mock-javamail/1.12/mock-javamail-1.12.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/.cache/coursier/v1/https/repo.jenkins-ci.org/releases/org/jvnet/mock-javamail/mock-javamail/1.12/mock-javamail-1.12-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.cache/coursier/v1/https/repo.jenkins-ci.org/releases/org/jvnet/mock-javamail/mock-javamail/1.12/mock-javamail-1.12-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
