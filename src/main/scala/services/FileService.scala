@@ -2,8 +2,10 @@ package at.energydash
 package services
 
 import actor.MqttPublisher.{MqttCommand, MqttPublish}
-import domain.eda.message.MessageHelper
+import domain.eda.message.{EdaErrorMessage, MessageHelper}
 import model.enums.EbMsProcessType
+import model.EbMsMessage
+import model.enums.EbMsMessageType
 
 import akka.Done
 import akka.actor.typed.{ActorRef, ActorSystem}
@@ -14,8 +16,7 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-import scala.util.Success
-
+import scala.util.{Failure, Success}
 
 trait FileService {
   implicit val system: ActorSystem[_]
@@ -40,6 +41,16 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
     })
     .collect {
       case Success(p) => p
+      case Failure(exception) => {
+        logger.error(exception.toString)
+        EdaErrorMessage(EbMsMessage(
+          messageCode = EbMsMessageType.ERROR_MESSAGE,
+          conversationId = "1",
+          messageId = None,
+          sender = "",
+          receiver = "",
+          errorMessage = Some(exception.toString)))
+      }
     }
 //    .log("mqtt", info => logger.info(s"$info Size: ${info}"))
     .map(p => {

@@ -1,10 +1,8 @@
 package at.energydash
 package domain.eda.message
 
-import domain.eda.message.EdaMessage
 import model.EbMsMessage
-
-import at.energydash.model.enums.EbMsMessageType
+import model.enums.EbMsMessageType
 
 import scala.util.Try
 import scala.xml.{Elem, Node, NodeSeq}

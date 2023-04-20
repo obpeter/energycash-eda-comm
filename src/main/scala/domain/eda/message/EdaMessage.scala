@@ -1,14 +1,15 @@
 package at.energydash
 package domain.eda.message
 
+import model.EbMsMessage
+
 import akka.util.ByteString
-import at.energydash.model.EbMsMessage
 
 import java.io.StringWriter
 import java.text.SimpleDateFormat
 import scala.util.Try
-import scala.xml.transform.{RewriteRule, RuleTransformer}
-import scala.xml.{Elem, MetaData, NamespaceBinding, Node, Null, PrefixedAttribute, TopScope, XML}
+import scala.xml.transform.RewriteRule
+import scala.xml._
 
 trait EdaMessage[EDAType] {
 
