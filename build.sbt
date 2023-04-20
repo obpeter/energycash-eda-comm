@@ -1,5 +1,5 @@
-import com.typesafe.sbt.packager.docker._
-import scalapb.GeneratorOption._
+import com.typesafe.sbt.packager.docker.*
+import scalapb.GeneratorOption.*
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
@@ -122,7 +122,7 @@ lazy val dockerSettings = Seq(
   dockerRepository := Some("ghcr.io"),
   dockerUsername := Some("vfeeg-development"),
   dockerUpdateLatest := true,
-  dockerExposedPorts := Seq(8880),
+  dockerExposedPorts := Seq(8880, 9090),
   dockerCommands := dockerCommands.value.filterNot {
     case ExecCmd("ENTRYPOINT", _) => true
     case cmd => false

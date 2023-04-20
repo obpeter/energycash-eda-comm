@@ -1,11 +1,13 @@
 package at.energydash
 package actor
 
-import actor.commands._
 import actor.TenantProvider.TenantStart
+import actor.commands._
+import actor.routes.ServiceRoute
 import config.Config
 import domain.mqtt.MqttEmail
 import domain.stream.MqttRequestStream
+import services.FileService
 
 import akka.Done
 import akka.actor.typed.scaladsl.Behaviors
@@ -16,10 +18,6 @@ import akka.stream.alpakka.mqtt.scaladsl.MqttSink
 import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS}
 import akka.stream.scaladsl.Sink
 import akka.util.Timeout
-import actor.SupervisorActor.startHttpServer
-import actor.routes.ServiceRoute
-import services.FileService
-
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 import scala.concurrent.duration.DurationInt
@@ -57,7 +55,7 @@ object SupervisorActor {
       val mqttPublisher = ctx.spawn(MqttPublisher(), name = "mqtt-publisher")
       val tenantProvider = ctx.spawn(TenantProvider(mqttPublisher, messageStore), name = "tenant-provider")
 
-      val responseSink = createResponseSink(s"${Config.getMqttMailConfig.consumerId}-response-mail")
+//      val responseSink = createResponseSink(s"${Config.getMqttMailConfig.consumerId}-response-mail")
       val mqttRequestStream = MqttRequestStream(tenantProvider, messageTransformer, messageStore)
 
       def process(): Behavior[Command] =

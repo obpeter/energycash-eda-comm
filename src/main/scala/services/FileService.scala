@@ -36,12 +36,12 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
     .map(part => FileInfo(part))
     .log("fileInfo", info => logger.info(s"$info Size: ${info.bodyPart.entity.withoutSizeLimit()}"))
     .mapAsync(1)(info => info.bodyPart.toStrict(5.seconds).map { body =>  MessageHelper
-      .getEdaMessageFromHeader(EbMsProcessType.withName(info.processName))
-      .fromXML(scala.xml.XML.load(body.entity.dataBytes.runWith(StreamConverters.asInputStream(15.seconds))))
-    })
+      .getEdaMessageFromHeader(EbMsProcessType.withName(info.processName)).map(msg =>
+      msg.fromXML(scala.xml.XML.load(body.entity.dataBytes.runWith(StreamConverters.asInputStream(15.seconds))))
+    )})
     .collect {
-      case Success(p) => p
-      case Failure(exception) => {
+      case Some(Success(p)) => p
+      case Some(Failure(exception)) => {
         logger.error(exception.toString)
         EdaErrorMessage(EbMsMessage(
           messageCode = EbMsMessageType.ERROR_MESSAGE,
@@ -51,8 +51,17 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
           receiver = "",
           errorMessage = Some(exception.toString)))
       }
+      case None =>
+        logger.error("UNKNOWN PROCESS STEP")
+        EdaErrorMessage(EbMsMessage(
+          messageCode = EbMsMessageType.ERROR_MESSAGE,
+          conversationId = "1",
+          messageId = None,
+          sender = "",
+          receiver = "",
+          errorMessage = Some("UNKNOWN PROCESS STEP")))
     }
-//    .log("mqtt", info => logger.info(s"$info Size: ${info}"))
+//    .log("mqtt", info => logger.info(s"$info"))
     .map(p => {
       mqttPublisher ! MqttPublish("", List(p))
     })

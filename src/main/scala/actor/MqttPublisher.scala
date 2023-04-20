@@ -30,6 +30,8 @@ object MqttPublisher extends StrictLogging{
       implicit val ex: ExecutionContextExecutor = ctx.system.executionContext
       val responseSink = createResponseSink(s"${Config.getMqttMailConfig.consumerId}-publisher-${1}")
 
+      ctx.log.info(s"MQTT Publish started. Configuration -> ${Config.getMqttMailConfig}")
+
       def convertCPRequestMessageToJson(x: EdaMessage[_]): MqttMessage = x match {
         case x: CPRequestZPListMessage => MqttMessage(s"${Config.cpTopic}/${x.message.receiver.toLowerCase}", ByteString(x.asJson.deepDropNullValues.noSpaces))
         case x: CMRequestRegistrationOnlineMessage => MqttMessage(s"${Config.cmTopic}/${x.message.receiver.toLowerCase}", ByteString(x.asJson.deepDropNullValues.noSpaces))
@@ -41,11 +43,11 @@ object MqttPublisher extends StrictLogging{
         Behaviors.receiveMessage {
           case MqttPublish(tenant, response) =>
             Source(response)//.throttle(12, 1.minute)
-              .log("CP_MSG", res => logger.info(res.toString))
+//              .log("CP_MSG", res => logger.info(res.toString))
               .map(x => convertCPRequestMessageToJson(x))
-              .log("mqtt", x => {
-                logger.info(s"Send MQTT Message to ${x.topic}")
-              })
+//              .log("mqtt", x => {
+//                logger.info(s"Send MQTT Message to ${x.topic}")
+//              })
               .runWith(responseSink)
             Behaviors.same
           case MqttPublishError(tenantId, msg) =>

@@ -1,5 +1,5 @@
 package at.energydash
-package domain.email.model
+package domain.email.mailmodel
 
 case class EmailRequestEDAModel(
                             to: String,

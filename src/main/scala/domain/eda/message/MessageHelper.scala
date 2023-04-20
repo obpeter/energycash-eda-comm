@@ -2,11 +2,12 @@ package at.energydash
 package domain.eda.message
 
 import model.EbMsMessage
-
 import domain.util.zip.CRC8
 import model.enums.EbMsMessageType.{EEG_BASE_DATA, ENERGY_FILE_RESPONSE, ENERGY_SYNC_REQ, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT, ZP_LIST}
 import model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_LIST_METERINGPOINTS, PROCESS_REGISTER_ONLINE, REQ_PROCESS_METERINGPOINTS_VALUE}
+
 import com.google.common.io.BaseEncoding
+import org.slf4j.LoggerFactory
 
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -14,6 +15,7 @@ import java.util.zip.CRC32
 
 object MessageHelper {
 
+  var logger = LoggerFactory.getLogger("MessageHelper")
   def getEdaMessageByType(message: EbMsMessage): EdaMessage[_] = {
     message.messageCode match {
       case ONLINE_REG_INIT => CMRequestRegistrationOnlineMessage(message)
@@ -30,12 +32,15 @@ object MessageHelper {
     }
   }
 
-  def getEdaMessageFromHeader(processCode: EbMsProcessType): EdaResponseType = {
+  def getEdaMessageFromHeader(processCode: EbMsProcessType): Option[EdaResponseType] = {
     processCode match {
-      case PROCESS_ENERGY_RESPONSE => ConsumptionRecordMessage
-      case PROCESS_REGISTER_ONLINE => CMRequestRegistrationOnlineMessage
-      case PROCESS_LIST_METERINGPOINTS => CPRequestZPListMessage
-      case REQ_PROCESS_METERINGPOINTS_VALUE => CPRequestMeteringValueMessage
+      case PROCESS_ENERGY_RESPONSE => Some(ConsumptionRecordMessage)
+      case PROCESS_REGISTER_ONLINE => Some(CMRequestRegistrationOnlineMessage)
+      case PROCESS_LIST_METERINGPOINTS => Some(CPRequestZPListMessage)
+      case REQ_PROCESS_METERINGPOINTS_VALUE => Some(CPRequestMeteringValueMessage)
+      case _ =>
+        logger.warn(s"Wrong ProcessCode: ${processCode}")
+        None
     }
   }
 

@@ -11,7 +11,7 @@ object Config {
   case class MqttMailConfig(url: String, topic: String, qos: Int, consumerId: String)
 
 //  lazy val config = ConfigFactory.load("application-test.conf")
-  lazy val config = ConfigFactory.load("application.conf")
+  lazy val config = ConfigFactory.load()
   config.checkValid(ConfigFactory.defaultReference)
 
   lazy val emailPersistInbox = config.getString("epmsmail.mail.inbox")

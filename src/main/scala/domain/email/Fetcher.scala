@@ -1,28 +1,25 @@
 package at.energydash
 package domain.email
 
-import config.Config
 import domain.dao.model.EmailOutbox
-import domain.dao.spec.{Db, SlickEmailOutboxRepository}
+import domain.dao.spec.SlickEmailOutboxRepository
 import domain.eda.message.{EdaErrorMessage, EdaMessage, MessageHelper}
-import domain.email.Fetcher.MailerResponseValue
+import model.EbMsMessage
+import model.enums.{EbMsMessageType, EbMsProcessType}
 
-import at.energydash.model.EbMsMessage
-import at.energydash.model.enums.{EbMsMessageType, EbMsProcessType}
 import com.typesafe.config.{Config => AkkaConfig}
-
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataOutputStream, File, FileOutputStream}
 import org.slf4j.LoggerFactory
 
-import java.sql.{Blob, Date, Timestamp}
+import java.io.ByteArrayOutputStream
+import java.sql.Timestamp
+import javax.mail._
 import javax.mail.internet.{MimeBodyPart, MimeMultipart}
-import javax.mail.{Flags, Folder, Message, Multipart, Part, Session, Store}
 import javax.mail.search.{AndTerm, FlagTerm, MessageIDTerm, SubjectTerm}
 import scala.util.{Failure, Success}
 
 class Fetcher {
 
-  import Fetcher.{MailMessage, ErrorMessage, MailContent, FetcherContext}
+  import Fetcher.{ErrorMessage, FetcherContext, MailContent, MailMessage}
 
   val logger = LoggerFactory.getLogger(classOf[Fetcher])
 
@@ -99,8 +96,8 @@ class Fetcher {
           }))
       case Some((protocol, messageId)) =>
         withAttachement(m) match {
-          case List(body) => MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(protocol))
-            .fromXML(scala.xml.XML.load(body.getInputStream)) match {
+          case List(body) => MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(protocol)).map(
+            msg => msg.fromXML(scala.xml.XML.load(body.getInputStream)) match {
               case Success(value) =>
                 Right(
                   MailMessage(
@@ -114,7 +111,7 @@ class Fetcher {
               case Failure(exception) =>
                 logger.error(exception.getMessage)
                 Left(m)
-              }
+              }).getOrElse(Left(m))
           case _ => Right(ErrorMessage(
             m.getHeader("Message-ID").toList.head,
             "ERROR", EdaErrorMessage.fromXML(

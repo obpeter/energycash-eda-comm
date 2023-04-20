@@ -4,9 +4,9 @@ package domain.email
 import courier.Mailer
 import domain.dao.model.TenantConfig
 
-import at.energydash.config.{Config => AppConfig}
+import config.{Config => AppConfig}
 import com.typesafe.config.Config
-import at.energydash.config.ConfigExtensions
+import config.ConfigExtensions
 
 import java.util.Properties
 import javax.mail.{PasswordAuthentication, Session}
@@ -41,7 +41,6 @@ object ConfiguredMailer {
     properties.putAll(mergedMap.asJava)
 
     println(s"Mail Properties: ${properties}")
-    println(s"Mail Config: ${properties}")
 
     def authenticatorFromConfig(user: String, pass: String) = {
       new javax.mail.Authenticator() {
