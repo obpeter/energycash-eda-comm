@@ -1,20 +1,20 @@
 package at.energydash
 package services
 
+import actor.MqttPublisher.{MqttCommand, MqttPublish}
+import domain.eda.message.MessageHelper
+import model.enums.EbMsProcessType
+
 import akka.Done
 import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.http.scaladsl.model.Multipart
 import akka.stream.Materializer
-import akka.stream.scaladsl.{Sink, Source, StreamConverters}
-import actor.MqttPublisher.{MqttCommand, MqttPublish}
-import domain.eda.message.MessageHelper
-import model.enums.EbMsProcessType
+import akka.stream.scaladsl.{Sink, StreamConverters}
 import com.typesafe.scalalogging.StrictLogging
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-import scala.util.{Failure, Success}
-import scala.xml.InputSource
+import scala.util.Success
 
 
 trait FileService {
@@ -41,16 +41,10 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
     .collect {
       case Success(p) => p
     }
-//    .map(info => MessageHelper
-//      .getEdaMessageFromHeader(EbMsProcessType.withName(info.processName))
-//      .fromXML(scala.xml.XML.load(info.bodyPart.entity.dataBytes.runWith(StreamConverters.asInputStream(15.seconds))))).collect {
-//        case Success(p) => p
-////        case Failure(exception) => logger.error(exception.getMessage)
-//      }
+//    .log("mqtt", info => logger.info(s"$info Size: ${info}"))
     .map(p => {
       mqttPublisher ! MqttPublish("", List(p))
     })
-//    .log("filecontent", p => logger.info(s"$p"))
     .runWith(Sink.ignore)
   }
 }

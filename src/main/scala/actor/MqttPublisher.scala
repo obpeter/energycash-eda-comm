@@ -11,13 +11,14 @@ import akka.stream.alpakka.mqtt.scaladsl.MqttSink
 import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
+import com.typesafe.scalalogging.StrictLogging
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
-object MqttPublisher {
+object MqttPublisher extends StrictLogging{
   import model.JsonImplicit._
   trait MqttCommand
   case class MqttPublish(tenant: String, mails: List[EdaMessage[_]]/*, mailProvider: ActorRef[EmailCommand]*/) extends MqttCommand
@@ -40,9 +41,10 @@ object MqttPublisher {
         Behaviors.receiveMessage {
           case MqttPublish(tenant, response) =>
             Source(response)//.throttle(12, 1.minute)
+              .log("CP_MSG", res => logger.info(res.toString))
               .map(x => convertCPRequestMessageToJson(x))
               .log("mqtt", x => {
-                ctx.log.info(s"Send MQTT Message to ${x.topic}")
+                logger.info(s"Send MQTT Message to ${x.topic}")
               })
               .runWith(responseSink)
             Behaviors.same
