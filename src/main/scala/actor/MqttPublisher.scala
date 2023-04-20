@@ -1,26 +1,20 @@
 package at.energydash
 package actor
 
-import domain.email.Fetcher.MailMessage
+import config.Config
+import domain.eda.message._
 
 import akka.Done
-import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import akka.stream.Attributes
 import akka.stream.alpakka.mqtt.scaladsl.MqttSink
 import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
-import actor.TenantMailActor.DeleteEmailCommand
-import actor.commands.EmailCommand
-import config.Config
-import domain.eda.message.{CMRequestRegistrationOnlineMessage, CPRequestZPListMessage, ConsumptionRecordMessage, EdaErrorMessage, EdaMessage}
-import model.EbMsMessage
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
 object MqttPublisher {
@@ -47,9 +41,9 @@ object MqttPublisher {
           case MqttPublish(tenant, response) =>
             Source(response)//.throttle(12, 1.minute)
               .map(x => convertCPRequestMessageToJson(x))
-//              .log("mqtt", x => {
-//                println(x.toString)
-//              })
+              .log("mqtt", x => {
+                ctx.log.info(s"Send MQTT Message to ${x.topic}")
+              })
               .runWith(responseSink)
             Behaviors.same
           case MqttPublishError(tenantId, msg) =>

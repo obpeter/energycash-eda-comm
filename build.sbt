@@ -1,5 +1,5 @@
-import com.typesafe.sbt.packager.docker._
-import scalapb.GeneratorOption._
+import com.typesafe.sbt.packager.docker.*
+import scalapb.GeneratorOption.*
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
@@ -88,6 +88,8 @@ lazy val root = (project in file("."))
       "org.postgresql" % "postgresql" % "42.2.5"
     ),
 
+    Test / javaOptions ++= Seq(s"-Dconfig.file=${sourceDirectory.value}/test/resources/application-test.conf"),
+
 //    Compile / PB.targets := Seq(
 //      scalapb.gen(FlatPackage) -> (Compile / akkaGrpcCodeGeneratorSettings / target).value
 //    ),
@@ -100,8 +102,6 @@ lazy val root = (project in file("."))
       target.value / "scala-2.13" / "akka-grpc" / "main",
       target.value / "scala-2.13" / "src_managed" / "main"
     ),
-
-    Test / javaOptions ++= Seq(s"-Dconfig.file=${sourceDirectory.value}/test/resources/application-test.conf"),
 
 //    Test / resourceDirectory := baseDirectory.value / "test-resources",
 
