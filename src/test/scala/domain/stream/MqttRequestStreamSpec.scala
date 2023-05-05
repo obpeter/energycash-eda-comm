@@ -1,32 +1,32 @@
 package at.energydash
 package domain.stream
 
-import akka.{Done, NotUsed}
+import actor.PrepareMessageActor.{PrepareMessage, Prepared}
+import actor.TenantProvider.DistributeMail
+import actor.commands.EmailCommand
+import actor.{MessageStorage, PrepareMessageActor}
+import domain.email.EmailService
+import model.EbMsMessage
+
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.typed.ActorSystem
 import akka.actor.{ActorSystem => OldActorSystem}
-import akka.stream.alpakka.mqtt
-import akka.stream.{ActorMaterializer, CompletionStrategy, Materializer, OverflowStrategy}
+import akka.stream.Materializer
 import akka.stream.alpakka.mqtt.MqttMessage
-import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
-import akka.stream.testkit.scaladsl.{TestSink, TestSource}
+import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.testkit.scaladsl.TestSink
 import akka.util.{ByteString, Timeout}
-import at.energydash.actor.PrepareMessageActor.{PrepareMessage, Prepared}
-import at.energydash.actor.TenantProvider.DistributeMail
-import at.energydash.actor.{MessageStorage, PrepareMessageActor}
-import at.energydash.actor.commands.EmailCommand
-import at.energydash.domain.email.EmailService
-import at.energydash.model.EbMsMessage
+import akka.{Done, NotUsed}
+import io.circe.generic.auto._
+import io.circe.parser.decode
+import io.circe.syntax._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{Await, Future, Promise}
-import scala.util.{Success, Try}
-import io.circe.generic.auto._
-import io.circe.syntax._
-import io.circe.parser.decode
+import scala.util.Success
 
 class MqttRequestStreamSpec extends AnyWordSpecLike with Matchers with BeforeAndAfterAll {
 
@@ -66,7 +66,7 @@ class MqttRequestStreamSpec extends AnyWordSpecLike with Matchers with BeforeAnd
     }
 
     "Mqtt Send CP_LIST Request Json Message" in {
-      import at.energydash.model.JsonImplicit._
+      import model.JsonImplicit._
       val jsonObject =
         """{
           |"messageCode":"ANFORDERUNG_ECP",
@@ -116,14 +116,15 @@ class MqttRequestStreamSpec extends AnyWordSpecLike with Matchers with BeforeAnd
           case Right(m) => m shouldBe ebMsMessage
           case _ => fail()
         }
-        resp.topic shouldBe "eda/response/rctest"
+        resp.topic shouldBe "eda/response/cp/rctest"
+        println(resp.payload.utf8String)
       }
 //      val res1 = Future {
 //        respMsg.requestNext()
 //      }
     }
     "Mqtt Send CP_LIST Request Error Json Message" in {
-      import at.energydash.model.JsonImplicit._
+      import model.JsonImplicit._
       val jsonObject =
         """{
           |"messageCode":"ANFORDERUNG_ECP",
@@ -172,7 +173,7 @@ class MqttRequestStreamSpec extends AnyWordSpecLike with Matchers with BeforeAnd
           case Right(m) => m shouldBe EmailService.SendErrorResponse("tenant1", "Error Message")
           case _ => fail()
         }
-        resp.topic shouldBe "eda/response/tenant1/error"
+        resp.topic shouldBe "eda/response/error/tenant1"
       }
     }
   }

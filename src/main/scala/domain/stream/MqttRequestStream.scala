@@ -52,7 +52,7 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
 
   private val storeMessageFlow: Flow[EbMsMessage, MqttMessage, NotUsed] =
     ActorFlow.ask(messageStore)(MessageStorage.AddMessage).collect {
-      case MessageStorage.Added(id) => MqttMessage(s"${Config.errorTopic}/${id.sender}", ByteString(id.asJson.toString()))
+      case MessageStorage.Added(id) => MqttMessage(s"${Config.cpTopic}/${id.sender}", ByteString(id.asJson.toString()))
     }
 
   private val prepareEmailMessageFlow: Flow[EbMsMessage, EmailService.EmailModel, NotUsed] =
