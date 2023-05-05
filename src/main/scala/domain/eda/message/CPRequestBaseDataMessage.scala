@@ -6,13 +6,13 @@ import model.enums.EbMsMessageType
 
 import akka.util.ByteString
 import scalaxb.Helper
-import xmlprotocol.{AddressType, CPRequest, DocumentMode, DocumentModeType, ECNumber, MarketParticipantDirectoryType2, MarketParticipantDirectoryType8, Number01Value2, Number01u4612, Number01u4612Value, ProcessDirectoryType2, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SIMU, SIMUValue, SchemaVersionType3, SchemaVersionType7}
+import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECNumber, MarketParticipantDirectoryType8, Number01Value2, Number01u4612Value, PRODValue, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SchemaVersionType7}
 
 import java.io.StringWriter
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 import scala.util.Try
-import scala.xml.{Elem, Node, NodeSeq, TopScope, XML}
+import scala.xml.{Elem, Node, XML}
 
 case class CPRequestBaseDataMessage(message: EbMsMessage) extends EdaMessage[CPRequest] {
 
@@ -38,7 +38,7 @@ case class CPRequestBaseDataMessage(message: EbMsMessage) extends EdaMessage[CPR
         Number01Value2,
         message.messageCode.toString,
         Map(
-          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](SIMUValue)),
+          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](PRODValue)),
           ("@Duplicate", scalaxb.DataRecord(false)),
           ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType7](Number01u4612Value)),
         )

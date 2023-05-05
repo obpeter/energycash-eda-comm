@@ -24,7 +24,7 @@ class MockedSMTPProvider
 
 
 class EmailServiceSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with Matchers {
-  val tenantConfig = TenantConfig("myeeg", "email.com", "email.com", 0, 0, "sepp", "password", "", "", true)
+  val tenantConfig = TenantConfig("myeeg", "email.com", "email.com", 0, "smtp.mail.com", 0, "sepp", "password", "", "", true)
   implicit def stringToInternetAddress(string:String):InternetAddress = new InternetAddress(string)
 
   import scala.concurrent.ExecutionContext.Implicits.global

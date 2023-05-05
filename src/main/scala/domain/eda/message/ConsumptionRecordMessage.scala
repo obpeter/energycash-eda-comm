@@ -1,12 +1,12 @@
 package at.energydash
 package domain.eda.message
 
-import model.{EbMsMessage, Energy, EnergyData, EnergyValue, Meter, ResponseData}
+import model.enums.EbMsMessageType
+import model._
 
 import akka.util.ByteString
-import model.enums.EbMsMessageType
 import scalaxb.Helper
-import xmlprotocol.{CMNotification, CMRequest, ConsumptionRecord, ConsumptionRecordVersion, DATEN_CRMSG, DocumentMode, DocumentModeType, MarketParticipantDirectory, MarketParticipantDirectoryType2, MarketParticipantDirectoryType8, Number01Value2, Number01u4630, ProcessDirectoryType2, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SIMU, SIMUValue}
+import xmlprotocol.{CMRequest, ConsumptionRecord, ConsumptionRecordVersion, DATEN_CRMSG, DocumentModeType, MarketParticipantDirectoryType2, Number01Value2, Number01u4630, PRODValue, ProcessDirectoryType2, RoutingAddress, RoutingHeader}
 
 import java.io.StringWriter
 import java.util.{Calendar, Date}
@@ -15,8 +15,9 @@ import scala.xml.{Elem, Node, XML}
 
 case class ConsumptionRecordMessage (message: EbMsMessage) extends EdaMessage[CMRequest] {
   override def toXML: Node = {
-    import java.util.GregorianCalendar
     import scalaxb.XMLStandardTypes._
+
+    import java.util.GregorianCalendar
 
     val calendar: GregorianCalendar = new GregorianCalendar
     calendar.setTime(new Date)
@@ -35,7 +36,7 @@ case class ConsumptionRecordMessage (message: EbMsMessage) extends EdaMessage[CM
         Number01Value2,
         DATEN_CRMSG,
         Map(
-          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](SIMUValue)),
+          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](PRODValue)),
           ("@Duplicate", scalaxb.DataRecord(false)),
           ("@SchemaVersion", scalaxb.DataRecord[ConsumptionRecordVersion](Number01u4630)),
         )

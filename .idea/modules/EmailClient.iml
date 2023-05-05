@@ -20,6 +20,7 @@
       <excludeFolder url="file://$MODULE_DIR$/../../target/test-reports" />
       <excludeFolder url="file://$MODULE_DIR$/../../target/docker" />
       <excludeFolder url="file://$MODULE_DIR$/../../target/universal" />
+      <excludeFolder url="file://$MODULE_DIR$/../../target/bg-jobs" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

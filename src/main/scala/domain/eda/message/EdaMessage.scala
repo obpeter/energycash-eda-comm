@@ -2,11 +2,14 @@ package at.energydash
 package domain.eda.message
 
 import model.EbMsMessage
+import model.enums.EbMsMessageType
+import model.enums.EbMsMessageType._
 
 import akka.util.ByteString
 
 import java.io.StringWriter
 import java.text.SimpleDateFormat
+import scala.language.postfixOps
 import scala.util.Try
 import scala.xml.transform.RewriteRule
 import scala.xml._
@@ -48,6 +51,10 @@ trait EdaMessage[EDAType] {
 
 trait EdaResponseType {
   def fromXML(xmlFile: Elem): Try[EdaMessage[_]]
+
+  def resolveMessageCode(xmlFile: Elem): Try[EbMsMessageType] = {
+      Try(EbMsMessageType.withName(xmlFile \\ "MessageCode" text))
+  }
 }
 
 
@@ -63,4 +70,12 @@ class NamespaceAndSchema(rootLabel: String, attrs: MetaData) extends RewriteRule
     case n =>
       n
   }
+}
+
+class MessageCodeExtractor() {
+
+  def fromXML(xmlFile: Elem) = {
+
+  }
+
 }

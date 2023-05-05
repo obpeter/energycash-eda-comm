@@ -43,11 +43,11 @@ object MqttPublisher extends StrictLogging{
         Behaviors.receiveMessage {
           case MqttPublish(tenant, response) =>
             Source(response)//.throttle(12, 1.minute)
-//              .log("CP_MSG", res => logger.info(res.toString))
+              .log("EDA_CODE", res => logger.info(res.toString))
               .map(x => convertCPRequestMessageToJson(x))
-//              .log("mqtt", x => {
-//                logger.info(s"Send MQTT Message to ${x.topic}")
-//              })
+              .log("mqtt", x => {
+                logger.info(s"Send MQTT Message to ${x.topic}")
+              })
               .runWith(responseSink)
             Behaviors.same
           case MqttPublishError(tenantId, msg) =>

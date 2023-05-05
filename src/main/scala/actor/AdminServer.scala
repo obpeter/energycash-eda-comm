@@ -10,8 +10,8 @@ import scala.io.Source
 import admin.excel.ExcelAdminServiceHandler
 import services.ExcelServiceImpl
 
-import at.energydash.config.Config
-import at.energydash.domain.email.ConfiguredMailer
+import config.Config
+import domain.email.ConfiguredMailer
 
 import java.security.{KeyStore, SecureRandom}
 import java.security.cert.{Certificate, CertificateFactory}

@@ -1,9 +1,7 @@
 package at.energydash
 package domain.dao.model
 
-import com.typesafe.config.Config
-
-case class TenantConfig(tenant: String, domain: String, host: String, imapPort: Int, smtpPort: Int, user: String, passwd: String, imapSecurity: String, smtpSecurity: String, active: Boolean) {
+case class TenantConfig(tenant: String, domain: String, host: String, imapPort: Int, smtpHost: String, smtpPort: Int, user: String, passwd: String, imapSecurity: String, smtpSecurity: String, active: Boolean) {
   import java.lang.Boolean._
   def toMap(): Map[String, AnyRef] =
     Map[String, AnyRef](
@@ -12,7 +10,7 @@ case class TenantConfig(tenant: String, domain: String, host: String, imapPort: 
       "mail.imap.user" -> user,
       "mail.imap.port" -> java.lang.Integer.valueOf(imapPort),
       "mail.imap.ssl.trust" -> host,
-      "mail.smtp.host" -> host,
+      "mail.smtp.host" -> smtpHost,
       "mail.smtp.user" -> user,
       "mail.smtp.port" -> java.lang.Integer.valueOf(smtpPort),
       "mail.smtp.auth" -> TRUE) ++

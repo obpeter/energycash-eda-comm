@@ -5,6 +5,7 @@ option java_package = "at.energydash.admin.excel";
 option java_outer_classname = "ExcelAdminProto";
 
 package at.energydash;
+
 // The greeting service definition.
 service ExcelAdminService {
   // Sends a greeting
@@ -15,8 +16,10 @@ service ExcelAdminService {
 message SendExcelRequest {
   string tenant = 1;
   string recipient = 2;
-  string filename = 3;
-  bytes content = 4;
+  string subject = 3;
+  optional string filename = 4;
+  optional bytes content = 5;
+  optional bytes body = 6;
 }
 
 // The response message containing the greetings

@@ -1,21 +1,23 @@
 package at.energydash
 package domain.stream
 
-import domain.email.EmailService
-import domain.eda.message.MessageHelper
-import model.EbMsMessage
+import actor.TenantProvider.DistributeMail
+import actor.commands.EmailCommand
 import actor.{MessageStorage, PrepareMessageActor}
-import akka.{Done, NotUsed}
+import config.Config
+import domain.eda.message.MessageHelper
+import domain.eda.message.MessageHelper.EDAMessageCodeToProcessCode
+import domain.email.EmailService
+import model.EbMsMessage
+
 import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.stream.alpakka.mqtt.MqttMessage
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.typed.scaladsl.ActorFlow
 import akka.util.{ByteString, Timeout}
-import actor.TenantProvider.DistributeMail
-import actor.commands.EmailCommand
-import domain.eda.message.MessageHelper.EDAMessageCodeToProcessCode
-import io.circe.parser.decode
+import akka.{Done, NotUsed}
 import io.circe.generic.auto._
+import io.circe.parser.decode
 import io.circe.syntax._
 import org.slf4j.LoggerFactory
 
@@ -36,7 +38,7 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
 
   private val decodingFlow: Flow[String, Either[MqttMessage, EbMsMessage], NotUsed] = {
     Flow.fromFunction(msg => decode[EbMsMessage](msg).left.map(error =>
-      MqttMessage("eda/response/error", ByteString(error.getMessage)))
+      MqttMessage(s"${Config.errorTopic}", ByteString(error.getMessage)))
     )
   }
 
@@ -50,7 +52,7 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
 
   private val storeMessageFlow: Flow[EbMsMessage, MqttMessage, NotUsed] =
     ActorFlow.ask(messageStore)(MessageStorage.AddMessage).collect {
-      case MessageStorage.Added(id) => MqttMessage(s"eda/response/${id.sender}", ByteString(id.asJson.toString()))
+      case MessageStorage.Added(id) => MqttMessage(s"${Config.errorTopic}/${id.sender}", ByteString(id.asJson.toString()))
     }
 
   private val prepareEmailMessageFlow: Flow[EbMsMessage, EmailService.EmailModel, NotUsed] =
@@ -99,7 +101,7 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
         case Left(error) ⇒ Source
           .single(error)
           .via(Flow.fromFunction( err =>
-            MqttMessage(s"eda/response/${err.tenant}/error", ByteString(err.asJson.toString().strip())))
+            MqttMessage(s"${Config.errorTopic}/${err.tenant}", ByteString(err.asJson.toString().strip())))
           )
         case Right(msg) => Source
           .single(msg)

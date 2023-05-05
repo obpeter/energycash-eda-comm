@@ -1,22 +1,19 @@
 package at.energydash
 package domain.email
 
-import at.energydash.config.Config
-import at.energydash.domain.dao.model.TenantConfig
-import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository}
-import at.energydash.domain.eda.message.CPRequestZPListMessage
-import at.energydash.domain.email.Fetcher.{ErrorMessage, FetcherContext, MailMessage}
-import at.energydash.model.EbMsMessage
+import domain.dao.spec.{Db, SlickEmailOutboxRepository}
+import domain.eda.message.CPRequestZPListMessage
+import domain.email.Fetcher.{ErrorMessage, FetcherContext, MailMessage}
+import domain.dao.model.TenantConfig
+import model.EbMsMessage
 
-import javax.mail.Message
 import courier.Multipart
 import org.jvnet.mock_javamail.Mailbox
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import javax.mail.Message
 import javax.mail.internet.{InternetAddress, MimeMessage}
-import scala.concurrent.ExecutionContext
-import scala.concurrent.ExecutionContext.Implicits
 import scala.io.Source
 import scala.language.implicitConversions
 import scala.xml.XML
@@ -26,7 +23,7 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
   import scala.concurrent.ExecutionContext.Implicits.global
   implicit def stringToInternetAddress(string:String):InternetAddress = new InternetAddress(string)
 
-  val tenantConfig = TenantConfig("myeeg", "email.com", "email.com", 0, 0, "sepp", "password", "", "", true)
+  val tenantConfig = TenantConfig("myeeg", "email.com", "email.com", 0, "smtp.mail.com", 0, "sepp", "password", "", "", true)
   val emailRepo = new SlickEmailOutboxRepository(Db.getConfig)
 
   "Email Fetcher" should {

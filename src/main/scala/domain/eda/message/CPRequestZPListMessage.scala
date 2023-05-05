@@ -1,10 +1,11 @@
 package at.energydash
 package domain.eda.message
 
-import model.{EbMsMessage, Meter}
 import model.enums.{EbMsMessageType, MeterDirectionType}
-import scalaxb.{DataRecord, Helper}
-import xmlprotocol.{AddressType, CPRequest, DocumentMode, DocumentModeType, ECMPList, ECNumber, MarketParticipantDirectoryType8, Number01Value2, Number01u4612Value, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SIMU, SIMUValue, SchemaVersionType7}
+import model.{EbMsMessage, Meter}
+
+import scalaxb.Helper
+import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECMPList, ECNumber, MarketParticipantDirectoryType8, Number01Value2, Number01u4612Value, PRODValue, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SchemaVersionType7}
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
@@ -19,8 +20,9 @@ case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPReq
     "http://www.ebutilities.at/schemata/customerprocesses/EC_PODLIST/01.00/ANFORDERUNG_ECP")
 
   def toXML: Node = {
-    import java.util.GregorianCalendar
     import scalaxb.XMLStandardTypes._
+
+    import java.util.GregorianCalendar
 
     val calendar: GregorianCalendar = new GregorianCalendar
     calendar.setTime(new Date)
@@ -41,7 +43,7 @@ case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPReq
         Number01Value2,
         message.messageCode.toString,
         Map(
-          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](SIMUValue)),
+          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](PRODValue)),
           ("@Duplicate", scalaxb.DataRecord(false)),
           ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType7](Number01u4612Value)),
         )

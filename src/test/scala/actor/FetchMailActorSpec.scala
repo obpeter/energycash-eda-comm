@@ -1,36 +1,32 @@
 package at.energydash
 package actor
 
+import actor.MessageStorage.StoredConversation
+import actor.MqttPublisher.{MqttCommand, MqttPublish}
+import actor.TenantMailActor.FetchEmailCommand
+import domain.dao.model.TenantConfig
+import domain.dao.spec.{Db, SlickEmailOutboxRepository}
+import domain.email.ConfiguredMailer
+import model.EbMsMessage
+import model.enums.EbMsMessageType
+
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import at.energydash.actor.TenantMailActor.FetchEmailCommand
-import at.energydash.actor.MessageStorage.StoredConversation
-import at.energydash.actor.MqttPublisher.{MqttCommand, MqttPublish}
-import at.energydash.actor.commands.EmailCommand
-import at.energydash.config.Config
-import at.energydash.domain.MyPostgresTest
-import at.energydash.domain.dao.model.TenantConfig
-import at.energydash.domain.dao.spec.{Db, SlickEmailOutboxRepository, SlickTenantConfigRepository}
-import at.energydash.domain.email.ConfiguredMailer
-import at.energydash.domain.email.Fetcher.{MailContent, MailMessage}
-import at.energydash.model.EbMsMessage
-import at.energydash.model.enums.EbMsMessageType
+import courier.Multipart
+import org.jvnet.mock_javamail.Mailbox
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import javax.mail.Message
-import courier.Multipart
-import org.jvnet.mock_javamail.Mailbox
-
 import javax.mail.internet.{InternetAddress, MimeMessage}
-import scala.xml.XML
 import scala.io.Source
+import scala.xml.XML
 class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with BeforeAndAfterAll {
 
   implicit def stringToInternetAddress(string:String):InternetAddress = new InternetAddress(string)
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val tenantConfig = TenantConfig("myeeg", "email.com", "email.com", 0, 0, "sepp", "password", "", "", true)
+  val tenantConfig = TenantConfig("myeeg", "email.com", "email.com", 0, "smtp.mail.com", 0, "sepp", "password", "", "", true)
   val emailRepo = new SlickEmailOutboxRepository(Db.getConfig)
 
   def perpareEmail(tenant: String): Unit = {

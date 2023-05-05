@@ -1,28 +1,26 @@
 package at.energydash
 package domain.eda.message
 
-import akka.util.ByteString
-import model.{EbMsMessage, ResponseData}
+import model.{EbMsMessage, Meter, ResponseData}
 import model.enums.{EbMsMessageType, MeterDirectionType}
-import scalaxb.{Helper, `package`}
-import scalaxb.`package`.toXML
-import xmlprotocol.{AddressType, CMNotification, CMRequest, CONSUMPTION, DValue2, DocumentMode, DocumentModeType, ECNumber, GENERATION, MarketParticipantDirectoryType4, MarketParticipantDirectoryType6, Number01Value2, Number01u4610, ProcessDirectoryType4, ProcessDirectoryType6, QHValue, ReqType, RoutingAddress, RoutingHeader, SIMU, SIMUValue, SchemaVersionType5}
 
-import java.io.StringWriter
+import scalaxb.Helper
+import xmlprotocol.{AddressType, CMNotification, CMRequest, CONSUMPTION, DocumentModeType, ECMPList, ECNumber, GENERATION, MarketParticipantDirectoryType6, Number01Value2, Number01u4610, PRODValue, ProcessDirectoryType6, ReqType, RoutingAddress, RoutingHeader, SchemaVersionType5}
+
 import java.util.{Calendar, Date}
-import scala.io.Source
-import scala.util.Try
-import scala.xml.{Elem, Node, XML}
+import scala.util.{Success, Try}
+import scala.xml.{Elem, Node}
 
 case class CMRequestRegistrationOnlineMessage(message: EbMsMessage) extends EdaMessage[CMRequest] {
   override def rootNodeLabel: Option[String] = Some("CMRequest")
 
   override def schemaLocation: Option[String] =
-    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10 http://www.ebutilities.at/schemata/customerprocesses/CM_REQ_ONL/01.10/ANFORDERUNG_CCMO")
+    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10 http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_ONL/01.00/ANFORDERUNG_ECON")
 
   override def toXML: Node = {
-    import java.util.GregorianCalendar
     import scalaxb.XMLStandardTypes._
+
+    import java.util.GregorianCalendar
 
     val calendar: GregorianCalendar = new GregorianCalendar
     calendar.setTime(new Date)
@@ -41,7 +39,7 @@ case class CMRequestRegistrationOnlineMessage(message: EbMsMessage) extends EdaM
         Number01Value2,
         message.messageCode.toString,
         Map(
-          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](SIMUValue)),
+          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](PRODValue)),
           ("@Duplicate", scalaxb.DataRecord(false)),
           ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType5](Number01u4610)),
         )
@@ -51,7 +49,7 @@ case class CMRequestRegistrationOnlineMessage(message: EbMsMessage) extends EdaM
         message.messageId.get,
         message.conversationId,
         Helper.toCalendar(dateFmt.format(calendar.getTime)),
-        message.meter.map(x=>x.meteringPoint),
+        message.meter.map(x => x.meteringPoint),
         message.requestId.get,
         None,
         ReqType(
@@ -80,30 +78,59 @@ case class CMRequestRegistrationOnlineMessage(message: EbMsMessage) extends EdaM
         Some("xsi") -> "http://www.w3.org/2001/XMLSchema-instance"),
       true).head
   }
-//  override def toByte: ByteString = {
-//    akka.util.ByteString(Source.fromFile("/home/petero/projects/energycash/xml/CMRequest-test-message.xml").mkString)
-//  }
+  //  override def toByte: ByteString = {
+  //    akka.util.ByteString(Source.fromFile("/home/petero/projects/energycash/xml/CMRequest-test-message.xml").mkString)
+  //  }
 }
 
 object CMRequestRegistrationOnlineMessage extends EdaResponseType {
   def fromXML(xmlFile: Elem): Try[CMRequestRegistrationOnlineMessage] = {
-    Try(scalaxb.fromXML[CMNotification](xmlFile)).map(document =>
-      CMRequestRegistrationOnlineMessage(
-        EbMsMessage(
-          Some(document.ProcessDirectory.MessageId),
-          document.ProcessDirectory.ConversationId,
-          document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-          document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-          EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode),
-          Some(document.ProcessDirectory.CMRequestId),
-          None,
-          None,
-          Some(document.ProcessDirectory.ResponseData.map(r => ResponseData(r.MeteringPoint, r.ResponseCode))),
-          None,
-          None,
-          None,
+    resolveMessageCode(xmlFile) match {
+      case Success(mc) => mc match {
+        case EbMsMessageType.ONLINE_REG_COMPLETION => Try(scalaxb.fromXML[ECMPList](xmlFile)).map(document =>
+          CMRequestRegistrationOnlineMessage(
+            EbMsMessage(
+              Some(document.ProcessDirectory.MessageId),
+              document.ProcessDirectory.ConversationId,
+              document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
+              document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
+              EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
+              None,
+              None,
+              None,
+              None,
+              None,
+              None,
+              Some(document.ProcessDirectory.MPListData
+                .map(mp =>
+                  Meter(
+                    mp.MeteringPoint,
+                    Some(MeterDirectionType.withName(mp.MPTimeData.head.EnergyDirection.toString))
+                  )
+                )
+              ),
+            )
+          )
         )
-      )
-    )
+        case _ => Try(scalaxb.fromXML[CMNotification](xmlFile)).map(document =>
+          CMRequestRegistrationOnlineMessage(
+            EbMsMessage(
+              Some(document.ProcessDirectory.MessageId),
+              document.ProcessDirectory.ConversationId,
+              document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
+              document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
+              EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode),
+              Some(document.ProcessDirectory.CMRequestId),
+              None,
+              None,
+              Some(document.ProcessDirectory.ResponseData.map(r => ResponseData(r.MeteringPoint, r.ResponseCode))),
+              None,
+              None,
+              None,
+            )
+          )
+        )
+      }
+    }
   }
 }
