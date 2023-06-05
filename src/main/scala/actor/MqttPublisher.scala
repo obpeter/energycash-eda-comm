@@ -33,10 +33,10 @@ object MqttPublisher extends StrictLogging{
       ctx.log.info(s"MQTT Publish started. Configuration -> ${Config.getMqttMailConfig}")
 
       def convertCPRequestMessageToJson(x: EdaMessage[_]): MqttMessage = x match {
-        case x: CPRequestZPListMessage => MqttMessage(s"${Config.cpTopic}/${x.message.receiver.toLowerCase}", ByteString(x.asJson.deepDropNullValues.noSpaces))
-        case x: CMRequestRegistrationOnlineMessage => MqttMessage(s"${Config.cmTopic}/${x.message.receiver.toLowerCase}", ByteString(x.asJson.deepDropNullValues.noSpaces))
-        case x: ConsumptionRecordMessage => MqttMessage(s"${Config.energyTopic}/${x.message.receiver.toLowerCase}", ByteString(x.asJson.deepDropNullValues.noSpaces)).withQos(MqttQoS.atMostOnce)
-        case x: EdaErrorMessage => MqttMessage(s"${Config.errorTopic}/${x.message.receiver.toLowerCase}", ByteString(x.asJson.deepDropNullValues.noSpaces))
+        case x: CPRequestZPListMessage => MqttMessage(s"${Config.cpTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))
+        case x: CMRequestRegistrationOnlineMessage => MqttMessage(s"${Config.cmTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))
+        case x: ConsumptionRecordMessage => MqttMessage(s"${Config.energyTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces)).withQos(MqttQoS.atMostOnce)
+        case x: EdaErrorMessage => MqttMessage(s"${Config.errorTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))
       }
 
       def process(): Behavior[MqttCommand] =
