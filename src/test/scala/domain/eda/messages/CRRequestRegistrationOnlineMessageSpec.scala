@@ -1,20 +1,18 @@
 package at.energydash
 package domain.eda.messages
 
-import akka.testkit.TestActor.NullMessage.sender
-import at.energydash.domain.eda.message.CMRequestRegistrationOnlineMessage
-import at.energydash.model.enums.EbMsMessageType.{EbMsMessageType, encoder}
-import at.energydash.model.enums.{EbMsMessageType, MeterDirectionType}
-import at.energydash.model.{EbMsMessage, Meter}
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import domain.eda.message.CMRequestRegistrationOnlineMessage
+import model.enums.{EbMsMessageType, MeterDirectionType}
+import model.{EbMsMessage, Meter}
+
 import io.circe.generic.auto._
 import io.circe.syntax._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 
 class CRRequestRegistrationOnlineMessageSpec extends AnyWordSpecLike with Matchers {
-  import at.energydash.model.JsonImplicit._
+  import model.JsonImplicit._
 
   "Registration Online Message" should {
     "build XML File" in {

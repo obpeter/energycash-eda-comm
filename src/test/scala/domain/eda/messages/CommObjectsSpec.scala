@@ -1,25 +1,21 @@
 package at.energydash
 package domain.eda.messages
 
-import at.energydash.domain.eda.message.{CMRequestRegistrationOnlineMessage, CPRequestMeteringValueMessage, CPRequestZPListMessage}
-import at.energydash.model.EbMsMessage
+import domain.eda.message.{CPRequestMeteringValueMessage, CPRequestZPListMessage}
+import model.EbMsMessage
+
+import io.circe.generic.auto._
+import io.circe.parser.decode
+import io.circe.syntax._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers._
-import scalaxb.Helper
-import xmlprotocol.{ANFORDERUNG_AP, GCRequestAP, GCRequestAP_EXT, MarketParticipantDirectoryType, Number01Value2, ProcessDirectoryType, RoutingAddress, RoutingHeader}
-import io.circe.generic.auto._
-import io.circe.syntax._
-import io.circe.parser.decode
 
-import java.nio.ByteBuffer
-import java.nio.charset.StandardCharsets
-import scala.xml.NodeSeq.fromSeq
 import scala.xml.{NamespaceBinding, TopScope}
 
 
 class CommObjectsSpec extends AnyFlatSpec {
 
-  import at.energydash.model.JsonImplicit._
+  import model.JsonImplicit._
 
   "it" should "compile to CP_LIST XML" in {
     val jsonObject =
