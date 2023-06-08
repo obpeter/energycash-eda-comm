@@ -8,6 +8,7 @@ import scalaxb.Helper
 import xmlprotocol.{AddressType, CPNotification, CPRequest, DocumentModeType, ECNumber, MarketParticipantDirectoryType8, Number01Value2, Number01u4612Value, PRODValue, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SchemaVersionType7}
 
 import java.text.SimpleDateFormat
+import java.time.ZoneId
 import java.util.{Calendar, Date, TimeZone}
 import scala.util.Try
 import scala.xml.{Elem, NamespaceBinding, Node, TopScope}
@@ -54,11 +55,9 @@ case class CPRequestMeteringValueMessage(message: EbMsMessage) extends EdaMessag
         Helper.toCalendar(dateFmt.format(processCalendar.getTime)),
         message.meter.map(x=>x.meteringPoint).getOrElse(""),
         message.timeline.map(t => {
-          val from = new GregorianCalendar();from.setTime(t.from);from.set(Calendar.MILLISECOND, 0)
-          from.setTimeZone(TimeZone.getTimeZone("Europe/Vienna"))
-
-          val to = new GregorianCalendar();to.setTime(t.to);to.set(Calendar.MILLISECOND, 0)
-          to.setTimeZone(TimeZone.getTimeZone("Europe/Vienna"))
+          val tz = TimeZone.getTimeZone("Europe/Vienna")
+          val from = new GregorianCalendar(tz);from.setTime(t.from);from.set(Calendar.MILLISECOND, 0)
+          val to = new GregorianCalendar(tz);to.setTime(t.to);to.set(Calendar.MILLISECOND, 0)
           xmlprotocol.Extension(
             None,
             None,

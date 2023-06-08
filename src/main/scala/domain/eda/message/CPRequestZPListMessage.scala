@@ -8,7 +8,7 @@ import scalaxb.Helper
 import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECMPList, ECNumber, MarketParticipantDirectoryType8, Number01Value2, Number01u4612Value, PRODValue, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SchemaVersionType7}
 
 import java.text.SimpleDateFormat
-import java.util.{Calendar, Date}
+import java.util.{Calendar, Date, TimeZone}
 import scala.util.Try
 import scala.xml.{Elem, NamespaceBinding, Node, TopScope}
 
@@ -24,7 +24,8 @@ case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPReq
 
     import java.util.GregorianCalendar
 
-    val calendar: GregorianCalendar = new GregorianCalendar
+    val tz = TimeZone.getTimeZone("Europe/Vienna")
+    val calendar: GregorianCalendar = new GregorianCalendar(tz)
     calendar.setTime(new Date)
     calendar.set(Calendar.MILLISECOND, 0)
 
@@ -54,9 +55,9 @@ case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPReq
         Helper.toCalendar(dateFmt.format(processCalendar.getTime)),
         message.meter.map(x=>x.meteringPoint).getOrElse(""),
         message.timeline.map(t => {
-            val from = new GregorianCalendar();from.setTime(t.from);from.set(Calendar.MILLISECOND, 0)
+          val from = new GregorianCalendar(tz);from.setTime(t.from);from.set(Calendar.MILLISECOND, 0)
           from.clear(Calendar.SECOND); from.clear(Calendar.MINUTE); from.clear(Calendar.HOUR)
-            val to = new GregorianCalendar();to.setTime(t.to);to.set(Calendar.MILLISECOND, 0)
+          val to = new GregorianCalendar(tz);to.setTime(t.to);to.set(Calendar.MILLISECOND, 0)
           to.clear(Calendar.SECOND); to.clear(Calendar.MINUTE); to.clear(Calendar.HOUR)
           xmlprotocol.Extension(
               None,
