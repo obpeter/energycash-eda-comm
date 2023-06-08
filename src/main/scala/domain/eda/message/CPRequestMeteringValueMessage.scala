@@ -56,7 +56,6 @@ case class CPRequestMeteringValueMessage(message: EbMsMessage) extends EdaMessag
         message.timeline.map(t => {
           val from = new GregorianCalendar();from.setTime(t.from);from.set(Calendar.MILLISECOND, 0)
           from.setTimeZone(TimeZone.getTimeZone("Europe/Vienna"))
-          println(from.getTimeZone().getID)
 
           val to = new GregorianCalendar();to.setTime(t.to);to.set(Calendar.MILLISECOND, 0)
           to.setTimeZone(TimeZone.getTimeZone("Europe/Vienna"))
