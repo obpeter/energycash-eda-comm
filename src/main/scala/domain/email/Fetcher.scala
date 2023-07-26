@@ -30,7 +30,7 @@ class Fetcher {
       val dataOutputStream = new ByteArrayOutputStream()
       m.writeTo(dataOutputStream)
 //      m.writeTo(new FileOutputStream(new File(s"${Config.emailPersistInbox}/${m.getReceivedDate.toString}_${m.getSubject}-${m.getMessageNumber}.eml")))
-      ctx.mailRepo.create(EmailOutbox(None, tenant, dataOutputStream.toByteArray, new Timestamp(System.currentTimeMillis())))
+      ctx.mailRepo.create(EmailOutbox(None, tenant, m.getSubject, dataOutputStream.toByteArray, new Timestamp(System.currentTimeMillis())))
     })
     msgs
   }

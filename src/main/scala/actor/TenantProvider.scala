@@ -1,20 +1,20 @@
 package at.energydash
 package actor
 
-import domain.email.EmailService.{EmailModel, EmitSendEmailCommand, SendEmailCommand, SendErrorResponse}
-
-import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.Behaviors
-import actor.TenantMailActor.DeleteEmailCommand
 import actor.MqttPublisher.MqttCommand
-import actor.commands.{Command, EmailCommand}
-import config.Config
+import actor.TenantMailActor.DeleteEmailCommand
+import actor.commands.EmailCommand
+import domain.dao.model.TenantConfig
 import domain.dao.spec.{Db, SlickEmailOutboxRepository, SlickTenantConfigRepository}
+import domain.email.EmailService.{EmailModel, EmitSendEmailCommand, SendErrorResponse}
+
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ActorRef, Behavior}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-import scala.util.Success
+import scala.util.{Success, Failure}
 
 class TenantProvider(supervisor: ActorRef[MqttCommand], messageStore: ActorRef[MessageStorage.Command[_]]) {
 
@@ -61,9 +61,25 @@ class TenantProvider(supervisor: ActorRef[MqttCommand], messageStore: ActorRef[M
             case None =>
           }
           Behaviors.same
+        case AddTenant(tenantConfig, replyTo) =>
+          tenantConfigRepository.create(tenantConfig).onComplete {
+            case Success(_) =>
+              context.self ! TenantAdded(tenantConfig, replyTo)
+            case Failure(e) =>
+              replyTo ! ResponseError(e.getMessage)
+          }
+          Behaviors.same
+
+        case TenantAdded(tenantConfig, replyTo) =>
+          replyTo ! ResponseOk
+          provide(
+            tenantActors +
+              (tenantConfig.tenant -> context.spawn(FetchMailTenantWorker(tenantConfig, supervisor, messageStore, mailRepo), s"worker-${tenantConfig.tenant}")))
+
       }
     }
-    setup
+
+    setup()
   }}
 }
 
@@ -74,6 +90,14 @@ object TenantProvider {
   case class DistributeMail(tenant: String, mail: EmailModel, replyTo: ActorRef[EmailCommand]) extends EmailCommand
 
   case class DeleteMail(tenant: String, messageId: String) extends EmailCommand
+
+  case class AddTenant(tenant: TenantConfig, replyTo: ActorRef[EmailCommand]) extends EmailCommand
+
+  case class TenantAdded(tenant: TenantConfig, replyTo: ActorRef[EmailCommand]) extends EmailCommand
+
+  case class ResponseError(msg: String) extends EmailCommand
+
+  case object ResponseOk extends EmailCommand
 
   def apply(mqttPublisher: ActorRef[MqttCommand], messageStore: ActorRef[MessageStorage.Command[_]]): Behavior[EmailCommand] =
     new TenantProvider(mqttPublisher, messageStore).start

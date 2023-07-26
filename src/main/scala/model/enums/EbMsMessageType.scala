@@ -18,7 +18,11 @@ object EbMsMessageType extends Enumeration {
   val ONLINE_REG_APPROVAL: EbMsMessageType.Value = Value("ZUSTIMMUNG_ECON")
   val ONLINE_REG_COMPLETION: EbMsMessageType.Value = Value("ABSCHLUSS_ECON")
 
+  // Energy Sync and Energy Message
   val ENERGY_SYNC_REQ: EbMsMessageType.Value = Value("ANFORDERUNG_PT")
+  val ENERGY_SYNC_RES: EbMsMessageType.Value = Value("ANTWORT_PT")
+  val ENERGY_SYNC_REJECTION: EbMsMessageType.Value = Value("ABLEHNUNG_PT")
+
   val ZP_LIST: EbMsMessageType.Value = Value("ANFORDERUNG_ECP")
   val ZP_LIST_RESPONSE: EbMsMessageType.Value = Value("SENDEN_ECP")
   val EEG_BASE_DATA: EbMsMessageType.Value = Value("ANFORDERUNG_GN")

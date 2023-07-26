@@ -1,17 +1,19 @@
 package at.energydash
 package actor
 
-import akka.actor.typed.{ActorRef, ActorSystem}
+import akka.actor.typed.{ActorRef, ActorSystem, Scheduler}
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
 
 import scala.io.Source
 import admin.excel.ExcelAdminServiceHandler
-import services.ExcelServiceImpl
-
+import admin.RegisterPontonServiceHandler
+import services.{AdminServiceImpl, ExcelServiceImpl}
 import config.Config
 import domain.email.ConfiguredMailer
+
+import akka.grpc.scaladsl.ServiceHandler
 
 import java.security.{KeyStore, SecureRandom}
 import java.security.cert.{Certificate, CertificateFactory}
@@ -32,14 +34,22 @@ class AdminServer(mailService: ActorRef[EmailCommand], system: ActorSystem[_]) {
   def run(): Future[Http.ServerBinding] = {
     implicit val sys = system
     implicit val ec: ExecutionContext = system.executionContext
+    implicit val sch: Scheduler = system.scheduler
 
-    val service: HttpRequest => Future[HttpResponse] =
-      ExcelAdminServiceHandler(new ExcelServiceImpl(AdminServer.mailSession, system))
+    val mailerService: PartialFunction[HttpRequest, Future[HttpResponse]] =
+      ExcelAdminServiceHandler.partial(new ExcelServiceImpl(AdminServer.mailSession, system))
+
+    val adminService: PartialFunction[HttpRequest, Future[HttpResponse]] = {
+      RegisterPontonServiceHandler.partial(new AdminServiceImpl(mailService))
+
+    }
+
+    val services: HttpRequest => Future[HttpResponse] = ServiceHandler.concatOrNotFound(mailerService, adminService)
 
     val bound: Future[Http.ServerBinding] = Http(system)
-      .newServerAt(interface = "0.0.0.0", port = 9090)
+      .newServerAt(interface = "0.0.0.0", port = 9092)
 //      .enableHttps(serverHttpContext)
-      .bind(service)
+      .bind(services)
       .map(_.addToCoordinatedShutdown(hardTerminationDeadline = 20.seconds))
 
     bound.onComplete {

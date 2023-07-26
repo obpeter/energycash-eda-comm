@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS eda.tenantconfig
     host     VARCHAR NOT NULL,
     imapPort INTEGER NOT NULL,
     smtpPort INTEGER NOT NULL,
+    smtpHost VARCHAR NOT NULL,
     username VARCHAR NOT NULL,
     pass     VARCHAR NOT NULL,
     imap_security VARCHAR NOT NULL,
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS eda.inbox
 (
     id       SERIAL PRIMARY KEY,
     tenant   VARCHAR NOT NULL,
+    subject VARCHAR NOT NULL,
     content  bytea NOT NULL,
     received TIMESTAMP NOT NULL
 );

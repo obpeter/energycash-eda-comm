@@ -1,17 +1,11 @@
 package at.energydash
 package domain.eda.messages
 
-import at.energydash.domain.eda.message.MessageHelper
-import at.energydash.domain.util.zip.CRC8
-import com.google.common.io.BaseEncoding
-import org.scalatest.matchers.Matcher
+import domain.eda.message.MessageHelper
+import domain.util.zip.CRC8
+
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-
-import java.nio.ByteBuffer
-import java.text.SimpleDateFormat
-import java.util.{Calendar, Date}
-import java.util.zip.CRC32
 
 class UtilSpec extends AnyWordSpec with Matchers {
 

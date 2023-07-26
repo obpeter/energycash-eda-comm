@@ -1,17 +1,16 @@
 package at.energydash
 package domain.eda.messages
 
-import at.energydash.domain.eda.message.ConsumptionRecordMessage
+import domain.eda.message.ConsumptionRecordMessage
+import model.JsonImplicit._
+
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
 import org.scalatest.wordspec.AnyWordSpec
 
-import java.io.{FileInputStream, InputStream}
-import scala.util.{Failure, Success}
-import io.circe.generic.auto._
-import io.circe.syntax._
-import io.circe.parser._
-import at.energydash.model.JsonImplicit._
-
 import scala.io.Source
+import scala.util.{Failure, Success}
 
 class EnergyConsumptionSpec extends AnyWordSpec {
   "Energy XML File" should {

@@ -6,7 +6,7 @@ import actor.{MessageStorage, TenantMailActor}
 import domain.dao.model.TenantConfig
 import domain.dao.spec.{Db, SlickEmailOutboxRepository}
 import domain.email.EmailService.{EmailModel, SendEmailCommand, SendEmailResponse}
-import at.energydash.model.EbMsMessage
+import model.EbMsMessage
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.util.ByteString

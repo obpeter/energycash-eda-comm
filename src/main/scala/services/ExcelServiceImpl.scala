@@ -31,7 +31,7 @@ class ExcelServiceImpl(session: Session, implicit val system: ActorSystem[_]) ex
     val subject = in.subject
     val to = in.recipient
 //    val from = s"${in.tenant}@ourproject.at"
-    val from = "admin@ourproject.at"
+    val from = "no-reply@eegfaktura.at"
 
     val mailAttachment = in.filename match {
       case Some(f) => in.content.map(c => MailAttachment(f, "application/octet-stream", ByteString(c.toByteArray)))
