@@ -1,14 +1,13 @@
 package at.energydash
 package domain.eda.message
 
-import model.EbMsMessage
+import model.{EbMsMessage, ResponseData}
 import model.enums.EbMsMessageType
 
 import scalaxb.Helper
 import xmlprotocol.{AddressType, CPNotification, CPRequest, DocumentModeType, ECNumber, MarketParticipantDirectoryType8, Number01Value2, Number01u4612Value, PRODValue, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SchemaVersionType7}
 
 import java.text.SimpleDateFormat
-import java.time.ZoneId
 import java.util.{Calendar, Date, TimeZone}
 import scala.util.Try
 import scala.xml.{Elem, NamespaceBinding, Node, TopScope}
@@ -113,7 +112,7 @@ object CPRequestMeteringValueMessage extends EdaResponseType {
           None,
           None,
           None,
-          None,
+          Some(document.ProcessDirectory.ResponseData.ResponseCode.map(r => ResponseData(None, List(r)))),
           None,
           None,
           None,
