@@ -18,7 +18,7 @@ trait EmailOutboxTable { this: Db =>
     def tenant: Rep[String] = column[String]("tenant")
     def content: Rep[Array[Byte]] = column[Array[Byte]]("content")
     def received: Rep[Timestamp] = column[Timestamp]("received")
-    def * : ProvenShape[EmailOutbox] = (id.?, subject, tenant, content, received) <> (EmailOutbox.tupled, EmailOutbox.unapply)
+    def * : ProvenShape[EmailOutbox] = (id.?, tenant, subject, content, received) <> (EmailOutbox.tupled, EmailOutbox.unapply)
   }
 
   val emailOutboxs = TableQuery[EmailOutboxs]
