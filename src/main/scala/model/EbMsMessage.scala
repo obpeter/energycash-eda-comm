@@ -34,7 +34,8 @@ case class EbMsMessage(
                         energy: Option[Energy] = None,
                         timeline: Option[Timeline] = None,
                         meterList: Option[Seq[Meter]] = None,
-                        errorMessage: Option[String] = None
+                        errorMessage: Option[String] = None,
+                        consentEnd: Option[Date] = None,
                       )
 
 object JsonImplicit {

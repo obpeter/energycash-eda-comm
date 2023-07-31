@@ -3,8 +3,8 @@ package domain.eda.message
 
 import model.EbMsMessage
 import domain.util.zip.CRC8
-import model.enums.EbMsMessageType.{EEG_BASE_DATA, ENERGY_FILE_RESPONSE, ENERGY_SYNC_REQ, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT, ZP_LIST}
-import model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_LIST_METERINGPOINTS, PROCESS_REGISTER_ONLINE, REQ_PROCESS_METERINGPOINTS_VALUE}
+import model.enums.EbMsMessageType.{EDA_MSG_AUFHEBUNG_CCMC, EDA_MSG_AUFHEBUNG_CCMI, EDA_MSG_AUFHEBUNG_CCMS, EEG_BASE_DATA, ENERGY_FILE_RESPONSE, ENERGY_SYNC_REQ, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT, ZP_LIST}
+import model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_LIST_METERINGPOINTS, PROCESS_METERINGPOINTS_VALUE, PROCESS_REGISTER_ONLINE, PROCESS_REVOKE_VALUE}
 
 import com.google.common.io.BaseEncoding
 import org.slf4j.LoggerFactory
@@ -22,6 +22,7 @@ object MessageHelper {
       case ZP_LIST => CPRequestZPListMessage(message)
       case EEG_BASE_DATA => CPRequestBaseDataMessage(message)
       case ENERGY_SYNC_REQ => CPRequestMeteringValueMessage(message)
+      case EDA_MSG_AUFHEBUNG_CCMS => CMRevokeMessage(message)
     }
   }
 
@@ -37,7 +38,8 @@ object MessageHelper {
       case PROCESS_ENERGY_RESPONSE => Some(ConsumptionRecordMessage)
       case PROCESS_REGISTER_ONLINE => Some(CMRequestRegistrationOnlineMessage)
       case PROCESS_LIST_METERINGPOINTS => Some(CPRequestZPListMessage)
-      case REQ_PROCESS_METERINGPOINTS_VALUE => Some(CPRequestMeteringValueMessage)
+      case PROCESS_METERINGPOINTS_VALUE => Some(CPRequestMeteringValueMessage)
+      case PROCESS_REVOKE_VALUE => Some(CMRevokeMessage)
       case _ =>
         logger.warn(s"Wrong ProcessCode: ${processCode}")
         None
@@ -49,7 +51,8 @@ object MessageHelper {
       case ZP_LIST => PROCESS_LIST_METERINGPOINTS
       case EEG_BASE_DATA => PROCESS_LIST_METERINGPOINTS
       case ONLINE_REG_INIT => PROCESS_REGISTER_ONLINE
-      case ENERGY_SYNC_REQ => REQ_PROCESS_METERINGPOINTS_VALUE
+      case ENERGY_SYNC_REQ => PROCESS_METERINGPOINTS_VALUE
+      case EDA_MSG_AUFHEBUNG_CCMS | EDA_MSG_AUFHEBUNG_CCMC | EDA_MSG_AUFHEBUNG_CCMI => PROCESS_REVOKE_VALUE
     }
   }
 

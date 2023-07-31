@@ -6,7 +6,7 @@ import model.enums.EbMsMessageType
 
 import akka.util.ByteString
 import scalaxb.Helper
-import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECNumber, MarketParticipantDirectoryType8, Number01Value2, Number01u4612Value, PRODValue, ProcessDirectoryType8, RoutingAddress, RoutingHeader, SchemaVersionType7}
+import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECNumber, MarketParticipantDirectoryType9, Number01Value2, Number01u4612Value, PRODValue, ProcessDirectoryType9, RoutingAddress, RoutingHeader, SchemaVersionType8}
 
 import java.io.StringWriter
 import java.text.SimpleDateFormat
@@ -29,7 +29,7 @@ case class CPRequestBaseDataMessage(message: EbMsMessage) extends EdaMessage[CPR
     val dateFmt = new SimpleDateFormat("yyyy-MM-dd")
 
     val doc = CPRequest(
-      MarketParticipantDirectoryType8(
+      MarketParticipantDirectoryType9(
         RoutingHeader(
           RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
           RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
@@ -40,10 +40,10 @@ case class CPRequestBaseDataMessage(message: EbMsMessage) extends EdaMessage[CPR
         Map(
           ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](PRODValue)),
           ("@Duplicate", scalaxb.DataRecord(false)),
-          ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType7](Number01u4612Value)),
+          ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType8](Number01u4612Value)),
         )
       ),
-      ProcessDirectoryType8(
+      ProcessDirectoryType9(
         message.messageId.get,
         message.conversationId,
         Helper.toCalendar(dateFmt.format(processCalendar.getTime)),

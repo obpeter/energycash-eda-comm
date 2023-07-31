@@ -1,11 +1,11 @@
 package at.energydash
 package domain.eda.message
 
-import model.{EbMsMessage, Meter, ResponseData}
 import model.enums.{EbMsMessageType, MeterDirectionType}
+import model.{EbMsMessage, Meter, ResponseData}
 
 import scalaxb.Helper
-import xmlprotocol.{AddressType, CMNotification, CMRequest, CONSUMPTION, DocumentModeType, ECMPList, ECNumber, GENERATION, MarketParticipantDirectoryType6, Number01Value2, Number01u4610, PRODValue, ProcessDirectoryType6, ReqType, RoutingAddress, RoutingHeader, SchemaVersionType5}
+import xmlprotocol.{AddressType, CMNotification, CMRequest, CONSUMPTION, DocumentModeType, ECMPList, ECNumber, GENERATION, MarketParticipantDirectoryType7, Number01Value2, Number01u4610, PRODValue, ProcessDirectoryType7, ReqType, RoutingAddress, RoutingHeader, SchemaVersionType6}
 
 import java.util.{Calendar, Date}
 import scala.util.{Success, Try}
@@ -30,7 +30,7 @@ case class CMRequestRegistrationOnlineMessage(message: EbMsMessage) extends EdaM
     processCalendar.add(Calendar.DAY_OF_MONTH, 3)
 
     val doc = CMRequest(
-      MarketParticipantDirectoryType6(
+      MarketParticipantDirectoryType7(
         RoutingHeader(
           RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
           RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
@@ -41,11 +41,11 @@ case class CMRequestRegistrationOnlineMessage(message: EbMsMessage) extends EdaM
         Map(
           ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](PRODValue)),
           ("@Duplicate", scalaxb.DataRecord(false)),
-          ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType5](Number01u4610)),
+          ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType6](Number01u4610)),
         )
 
       ),
-      ProcessDirectoryType6(
+      ProcessDirectoryType7(
         message.messageId.get,
         message.conversationId,
         Helper.toCalendar(dateFmt.format(calendar.getTime)),
