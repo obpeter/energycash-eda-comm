@@ -9,7 +9,8 @@ import model.enums.MeterDirectionType.MeterDirectionType
 import java.util.Date
 
 case class ResponseData(MeteringPoint: Option[String],
-                        ResponseCode: Seq[BigInt])
+                        ResponseCode: Seq[BigInt],
+                        ConsentEnd: Option[Date] = None)
 
 case class Timeline(from: Date, to: Date)
 

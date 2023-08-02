@@ -1,7 +1,7 @@
 package at.energydash
 package domain.eda.message
 
-import model.{EbMsMessage}
+import model.{EbMsMessage, ResponseData}
 import model.enums.EbMsMessageType
 
 import scalaxb.Helper
@@ -70,7 +70,10 @@ object CMRevokeMessage extends EdaResponseType {
           sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
           receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
           messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
-          consentEnd = Some(new Date(document.ProcessDirectory.ConsentEnd.getMillisecond))
+          responseData = Some(List(ResponseData(
+            Some(document.ProcessDirectory.MeteringPoint),
+            List(1099),
+            Some(new Date(document.ProcessDirectory.ConsentEnd.getMillisecond)))))
         )
       )
     )
