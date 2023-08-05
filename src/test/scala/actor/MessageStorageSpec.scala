@@ -2,9 +2,9 @@ package at.energydash
 package actor
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import at.energydash.actor.MessageStorage.MessageFound
-import at.energydash.model.EbMsMessage
-import at.energydash.model.enums.EbMsMessageType
+import actor.MessageStorage.MessageFound
+import model.EbMsMessage
+import model.enums.EbMsMessageType
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -58,7 +58,7 @@ class MessageStorageSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
       storage ! MessageStorage.FindById(added.msg.conversationId, lookupProbe.ref)
       val found = lookupProbe.expectMessageType[MessageFound]
       found.conversation.conversationId shouldBe "AT3241234124312432143"
-      found.conversation.messages.size shouldBe 2
+      found.conversation.message shouldBe defined
     }
 
     "Generate MessageID and RequestID" in {

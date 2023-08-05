@@ -31,7 +31,7 @@ class TenantMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[Message
 //  val config: com.typesafe.config.Config = Config.getMailSessionConfig(tenant)
   private val mailSession = ConfiguredMailer.getSession(tenantConfig)
 
-  implicit val mailContext = FetcherContext(tenant, mailSession, mailRepo)
+  implicit val mailContext: FetcherContext = FetcherContext(tenant, mailSession, mailRepo)
 
   def start: Behavior[EmailCommand] = Behaviors.setup[EmailCommand] { context => {
     import context.{executionContext, system}
@@ -44,16 +44,14 @@ class TenantMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[Message
                 Future.sequence(msgs.map {
                   case m: MailMessage =>
                     for {
-                      _ <- messageStore.ask(ref => MessageStorage.FindById(m.content.message.conversationId, ref)).map {
-                        case MessageStorage.MessageNotFound(_) => Future.failed(new Exception("Conversation-id not found"))
-                        case MessageStorage.MessageFound(m) => Future(m)
+                      sm <- messageStore.ask(ref => MessageStorage.FindById(m.content.message.conversationId, ref)).map {
+                        case MessageStorage.MessageNotFound(_) => m.content
+                        case MessageStorage.MessageFound(storedMessage) => mergeEbmsMessage(storedMessage.message, m.content)
                       }
-                      _ <- messageStore.ask(ref => MessageStorage.AddMessage(m.content.message, ref)).mapTo[MessageStorage.Added]
-                      mm <- Future {
-                        Fetcher().deleteById(m.id)
-                        m.content
-                      }
-                    } yield mm
+                      _ <- Future {println(s"Stored Message! ${sm}")}
+//                      _ <- messageStore.ask(ref => MessageStorage.AddMessage(m.content.message, ref)).mapTo[MessageStorage.Added]
+                      _ <- Future {Fetcher().deleteById(m.id)}
+                    } yield sm
                   case m: ErrorMessage =>
                     for {
                       mm <- Future {

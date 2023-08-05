@@ -8,7 +8,7 @@ import scalaxb.Helper
 import xmlprotocol.{AddressType, CMNotification, CMRequest, CONSUMPTION, DocumentModeType, ECMPList, ECNumber, GENERATION, MarketParticipantDirectoryType7, Number01Value2, Number01u4610, PRODValue, ProcessDirectoryType7, ReqType, RoutingAddress, RoutingHeader, SchemaVersionType6}
 
 import java.util.{Calendar, Date}
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 import scala.xml.{Elem, Node}
 
 case class CMRequestRegistrationOnlineMessage(message: EbMsMessage) extends EdaMessage[CMRequest] {
@@ -131,6 +131,17 @@ object CMRequestRegistrationOnlineMessage extends EdaResponseType {
           )
         )
       }
+      case Failure(exception) =>
+        Try(CMRequestRegistrationOnlineMessage(
+          EbMsMessage(
+            messageCode = EbMsMessageType.ERROR_MESSAGE,
+            conversationId = "1",
+            messageId = None,
+            sender = "",
+            receiver = "",
+            errorMessage = Some(exception.getMessage)
+          )
+        ))
     }
   }
 }

@@ -92,7 +92,7 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
           DistributeMail(msg.tenant, msg, replyTo)).collect {
           case EmailService.SendEmailResponse(msg) => Right(msg)
           case err : EmailService.SendErrorResponse => {
-            println(s"Receive Errormessage sending Mail ${err}")
+            logger.error(s"Receive Errormessage sending Mail ${err}")
             Left(err)
           }
         }

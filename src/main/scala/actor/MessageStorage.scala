@@ -36,8 +36,8 @@ object MessageStorage {
     def applyEvent(event: Event): Storage = event match {
       case MessageAdded(id, messageId, message) =>
         copy(conversations = conversations.updated(id, conversations.get(id) match {
-          case Some(conversation) => StoredConversation(id, conversation.messages + (messageId -> message))
-          case None => StoredConversation(id, Map(messageId -> message))
+          case Some(conversation) => StoredConversation(id, Some(message))
+          case None => StoredConversation(id, Some(message))
         }))
     }
 
@@ -52,11 +52,11 @@ object MessageStorage {
     }
   }
 
-  case class StoredConversation(conversationId: String, messages: Map[String, EbMsMessage])
+  case class StoredConversation(conversationId: String, message: Option[EbMsMessage])
 
   def apply(): Behavior[Command[_]] = Behaviors.setup { context =>
     EventSourcedBehavior.withEnforcedReplies[Command[_], Event, Storage](
-      persistenceId = PersistenceId.ofUniqueId("messagestorage"),
+      persistenceId = PersistenceId.ofUniqueId("conversationstorage"),
       emptyState = Storage(),
       commandHandler = (state, cmd) => state.applyCommand(context, cmd),
       eventHandler = (state, evt) => state.applyEvent(evt))
