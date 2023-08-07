@@ -48,7 +48,7 @@ class TenantMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[Message
                         case MessageStorage.MessageNotFound(_) => m.content
                         case MessageStorage.MessageFound(storedMessage) => mergeEbmsMessage(storedMessage.message, m.content)
                       }
-                      _ <- Future {println(s"Stored Message! ${sm}")}
+//                      _ <- Future {println(s"Stored Message! ${sm}")}
 //                      _ <- messageStore.ask(ref => MessageStorage.AddMessage(m.content.message, ref)).mapTo[MessageStorage.Added]
                       _ <- Future {Fetcher().deleteById(m.id)}
                     } yield sm

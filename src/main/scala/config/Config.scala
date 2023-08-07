@@ -8,6 +8,9 @@ import java.time.Duration
 object Config {
   import scala.jdk.CollectionConverters._
 
+  case class MqttConfig(host: String, port: Int, username: String, password: String, ssl: Boolean, required: Option[Boolean], base_name: Option[String])
+  def getMqttConfig(): MqttConfig = MqttConfig("localhost", 1883, "", "", false, None, Some("eda/response"))
+
   case class MqttMailConfig(url: String, topic: String, qos: Int, consumerId: String)
 
 //  lazy val config = ConfigFactory.load("application-test.conf")

@@ -23,6 +23,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
+import mqtt.MqttSystem
 
 object SupervisorActor {
   private def startHttpServer(routes: Route)(implicit system: ActorSystem[_]): Unit = {
@@ -50,13 +51,16 @@ object SupervisorActor {
       implicit val timeout: Timeout = Timeout(5.seconds)
       implicit val ex: ExecutionContextExecutor = system.executionContext
 
+      val mqttSystem = ctx.spawn(MqttSystem(config.Config.getMqttConfig()), name = "mqtt-system")
+
       val messageTransformer = ctx.spawn(PrepareMessageActor(), "message-transformer")
       val messageStore = ctx.spawn(MessageStorage(), name = "message-storage")
-      val mqttPublisher = ctx.spawn(MqttPublisher(), name = "mqtt-publisher")
+      val mqttPublisher = ctx.spawn(MqttPublisher(mqttSystem), name = "mqtt-publisher")
       val tenantProvider = ctx.spawn(TenantProvider(mqttPublisher, messageStore), name = "tenant-provider")
 
 //      val responseSink = createResponseSink(s"${Config.getMqttMailConfig.consumerId}-response-mail")
       val mqttRequestStream = MqttRequestStream(tenantProvider, messageTransformer, messageStore)
+
 
       def process(): Behavior[Command] =
         Behaviors.receiveMessage {
