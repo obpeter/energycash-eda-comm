@@ -1,5 +1,5 @@
 package at.energydash
-package domain.util
+package utils
 
 object Enum {
 

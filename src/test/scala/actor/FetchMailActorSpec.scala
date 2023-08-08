@@ -4,8 +4,6 @@ package actor
 import actor.MessageStorage.StoredConversation
 import actor.MqttPublisher.{MqttCommand, MqttPublish}
 import actor.TenantMailActor.FetchEmailCommand
-import domain.dao.model.TenantConfig
-import domain.dao.spec.{Db, SlickEmailOutboxRepository}
 import domain.email.ConfiguredMailer
 import model.enums.EbMsMessageType._
 import model.{EbMsMessage, Meter}
@@ -20,6 +18,9 @@ import javax.mail.Message
 import javax.mail.internet.{InternetAddress, MimeMessage}
 import scala.io.Source
 import scala.xml.XML
+import model.dao.TenantConfig
+import domain.dao.{SlickEmailOutboxRepository, Db}
+
 class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike with BeforeAndAfterAll {
 
   implicit def stringToInternetAddress(string:String):InternetAddress = new InternetAddress(string)
@@ -111,8 +112,8 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
       val mqttMsg = replyActor.expectMessageType[MqttPublish]
 
-      mqttMsg.mails.head.message.meter.get.meteringPoint shouldBe "meterid123456"
-      mqttMsg.mails.head.message.responseData.get.head.ResponseCode.head shouldBe 70
+      mqttMsg.mails.head.message.message.meter.get.meteringPoint shouldBe "meterid123456"
+      mqttMsg.mails.head.message.message.responseData.get.head.ResponseCode.head shouldBe 70
 
       Mailbox.clearAll()
     }
@@ -132,8 +133,8 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
       val mqttMsg = replyActor.expectMessageType[MqttPublish]
 
-      mqttMsg.mails.head.message.meter shouldBe None
-      mqttMsg.mails.head.message.responseData.get.head.ResponseCode.head shouldBe 70
+      mqttMsg.mails.head.message.message.meter shouldBe None
+      mqttMsg.mails.head.message.message.responseData.get.head.ResponseCode.head shouldBe 70
 
       Mailbox.clearAll()
     }
@@ -154,9 +155,9 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
       val mqttMsg = replyActor.expectMessageType[MqttPublish]
       println(mqttMsg)
-      mqttMsg.mails.head.message.meter shouldBe None
-      mqttMsg.mails.head.message.responseData.get.head.ResponseCode.head shouldBe 175
-      mqttMsg.mails.head.message.responseData.get.head.MeteringPoint shouldBe Some("AT0030000000000000000000000959561")
+      mqttMsg.mails.head.message.message.meter shouldBe None
+      mqttMsg.mails.head.message.message.responseData.get.head.ResponseCode.head shouldBe 175
+      mqttMsg.mails.head.message.message.responseData.get.head.MeteringPoint shouldBe Some("AT0030000000000000000000000959561")
 
       Mailbox.clearAll()
     }

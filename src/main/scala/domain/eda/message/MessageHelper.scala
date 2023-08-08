@@ -2,7 +2,6 @@ package at.energydash
 package domain.eda.message
 
 import model.EbMsMessage
-import domain.util.zip.CRC8
 import model.enums.EbMsMessageType.{EDA_MSG_AUFHEBUNG_CCMC, EDA_MSG_AUFHEBUNG_CCMI, EDA_MSG_AUFHEBUNG_CCMS, EEG_BASE_DATA, ENERGY_FILE_RESPONSE, ENERGY_SYNC_REQ, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT, ZP_LIST}
 import model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_LIST_METERINGPOINTS, PROCESS_METERINGPOINTS_VALUE, PROCESS_REGISTER_ONLINE, PROCESS_REVOKE_VALUE}
 
@@ -12,6 +11,7 @@ import org.slf4j.LoggerFactory
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.zip.CRC32
+import utils.zip.CRC8
 
 object MessageHelper {
 

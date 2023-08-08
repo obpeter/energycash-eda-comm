@@ -1,10 +1,10 @@
 package at.energydash
 package domain.email
 
-import domain.dao.model.EmailOutbox
-import domain.dao.spec.SlickEmailOutboxRepository
+import domain.dao.SlickEmailOutboxRepository
 import domain.eda.message.{EdaErrorMessage, EdaMessage, MessageHelper}
 import model.EbMsMessage
+import model.dao.EmailOutbox
 import model.enums.{EbMsMessageType, EbMsProcessType}
 
 import com.typesafe.config.{Config => AkkaConfig}

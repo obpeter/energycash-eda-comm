@@ -1,12 +1,12 @@
 package at.energydash
-package domain.dao.spec
-
-import domain.dao.model.EmailOutbox
+package domain.dao
 
 import slick.lifted.ProvenShape
 import slick.sql.SqlProfile.ColumnOption.SqlType
 
 import java.sql.Timestamp
+
+import model.dao.EmailOutbox
 
 trait EmailOutboxTable { this: Db =>
 

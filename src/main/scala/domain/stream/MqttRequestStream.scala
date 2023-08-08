@@ -9,9 +9,10 @@ import domain.eda.message.MessageHelper
 import domain.eda.message.MessageHelper.EDAMessageCodeToProcessCode
 import domain.email.EmailService
 import model.EbMsMessage
+import mqtt.path.MqttPaths
 
 import akka.actor.typed.{ActorRef, ActorSystem}
-import akka.stream.alpakka.mqtt.MqttMessage
+import akka.stream.alpakka.mqtt.{MqttMessage, MqttQoS}
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.typed.scaladsl.ActorFlow
 import akka.util.{ByteString, Timeout}
@@ -27,7 +28,7 @@ import scala.concurrent.duration.DurationInt
 class MqttRequestStream(mailService: ActorRef[EmailCommand],
                              messageTransformer: ActorRef[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]],
                              messageStore: ActorRef[MessageStorage.Command[MessageStorage.AddMessageResult]])
-                            (implicit system: ActorSystem[_]){
+                            (implicit system: ActorSystem[_]) extends MqttPaths {
 
   import model.JsonImplicit._
 
@@ -52,7 +53,11 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
 
   private val storeMessageFlow: Flow[EbMsMessage, MqttMessage, NotUsed] =
     ActorFlow.ask(messageStore)(MessageStorage.AddMessage).collect {
-      case MessageStorage.Added(id) => MqttMessage(s"${Config.cpTopic}/${id.sender}", ByteString(id.asJson.toString()))
+      case MessageStorage.Added(id) =>
+        MqttMessage(
+          edaProtocolModulePath(id.sender, EDAMessageCodeToProcessCode(id.messageCode).toString),
+          ByteString(id.asJson.toString()))
+          .withQos(MqttQoS.AtLeastOnce).withRetained(true)
     }
 
   private val prepareEmailMessageFlow: Flow[EbMsMessage, EmailService.EmailModel, NotUsed] =
@@ -101,8 +106,10 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
         case Left(error) ⇒ Source
           .single(error)
           .via(Flow.fromFunction( err =>
-            MqttMessage(s"${Config.errorTopic}/${err.tenant}", ByteString(err.asJson.toString().strip())))
-          )
+            MqttMessage(
+              edaProtocolModulePath(err.tenant, "error"),
+              ByteString(err.asJson.toString().strip())).withQos(MqttQoS.AtLeastOnce).withRetained(true)
+          ))
         case Right(msg) => Source
           .single(msg)
           .via(storeMessageFlow)

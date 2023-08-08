@@ -1,19 +1,18 @@
 package at.energydash
 package actor
 
+import actor.MqttPublisher.MqttCommand
 import actor.TenantMailActor.{DeleteEmailCommand, FetchEmailCommand}
-import actor.commands.{Command, EmailCommand}
+import actor.commands.EmailCommand
+import config.Config
+import domain.dao.SlickEmailOutboxRepository
+import domain.email.EmailService.{EmitSendEmailCommand, SendEmailCommand}
+import model.dao.TenantConfig
 
-import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.actor.typed.scaladsl.{Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
-import actor.MqttPublisher.MqttCommand
-import config.Config
-import domain.dao.model.TenantConfig
-import domain.dao.spec.{Db, SlickEmailOutboxRepository}
-import domain.email.EmailService.{EmitSendEmailCommand, SendEmailCommand}
 
-import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration, MILLISECONDS, SECONDS}
+import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration, MILLISECONDS}
 
 class FetchMailTenantWorker(timers: TimerScheduler[EmailCommand],
                             tenant: TenantConfig,

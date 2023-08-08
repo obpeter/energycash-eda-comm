@@ -1,11 +1,12 @@
 package at.energydash
-package domain.mqtt
+package mqtt
+
+import config.Config
 
 import akka.Done
-import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
 import akka.stream.alpakka.mqtt.scaladsl.MqttSource
+import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
 import akka.stream.scaladsl.Source
-import config.Config
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 import scala.concurrent.Future

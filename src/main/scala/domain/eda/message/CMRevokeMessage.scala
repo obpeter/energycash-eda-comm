@@ -51,11 +51,9 @@ case class CMRevokeMessage(message: EbMsMessage) extends EdaMessage[CMRevoke] {
       )
     )
 
-    scalaxb.toXML[CMRevoke](doc, Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10"), rootNodeLabel,
+    scalaxb.toXML[CMRevoke](doc, Some("http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p00"), rootNodeLabel,
       scalaxb.toScope(
-        None -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
-        Some("ns2") -> "http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10",
-        Some("xsi") -> "http://www.w3.org/2001/XMLSchema-instance"),
+        None -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20"),
       true).head
   }
 }

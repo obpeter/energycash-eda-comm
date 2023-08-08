@@ -4,8 +4,6 @@ package actor
 import actor.MqttPublisher.MqttCommand
 import actor.TenantMailActor.DeleteEmailCommand
 import actor.commands.EmailCommand
-import domain.dao.model.TenantConfig
-import domain.dao.spec.{Db, SlickEmailOutboxRepository, SlickTenantConfigRepository}
 import domain.email.EmailService.{EmailModel, EmitSendEmailCommand, SendErrorResponse}
 
 import akka.actor.typed.scaladsl.Behaviors
@@ -14,7 +12,9 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
+import domain.dao._
+import model.dao.TenantConfig
 
 class TenantProvider(supervisor: ActorRef[MqttCommand], messageStore: ActorRef[MessageStorage.Command[_]]) {
 

@@ -1,10 +1,8 @@
 package at.energydash
 package domain.email
 
-import domain.dao.spec.{Db, SlickEmailOutboxRepository}
 import domain.eda.message.CPRequestZPListMessage
 import domain.email.Fetcher.{ErrorMessage, FetcherContext, MailMessage}
-import domain.dao.model.TenantConfig
 import model.EbMsMessage
 
 import courier.Multipart
@@ -17,6 +15,9 @@ import javax.mail.internet.{InternetAddress, MimeMessage}
 import scala.io.Source
 import scala.language.implicitConversions
 import scala.xml.XML
+
+import model.dao.TenantConfig
+import domain.dao.{Db, SlickEmailOutboxRepository}
 
 class FetcherSpec extends AnyWordSpecLike with Matchers {
 

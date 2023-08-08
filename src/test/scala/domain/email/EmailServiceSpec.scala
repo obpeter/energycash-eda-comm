@@ -3,8 +3,6 @@ package domain.email
 
 import actor.commands.EmailCommand
 import actor.{MessageStorage, TenantMailActor}
-import domain.dao.model.TenantConfig
-import domain.dao.spec.{Db, SlickEmailOutboxRepository}
 import domain.email.EmailService.{EmailModel, SendEmailCommand, SendEmailResponse}
 import model.EbMsMessage
 
@@ -18,6 +16,8 @@ import java.util.Properties
 import javax.mail.Provider
 import javax.mail.internet.{InternetAddress, MimeMultipart}
 import scala.language.postfixOps
+import model.dao.TenantConfig
+import domain.dao.{SlickEmailOutboxRepository, Db}
 
 class MockedSMTPProvider
   extends Provider(Provider.Type.TRANSPORT, "mocked", classOf[MockTransport].getName, "Mock", null)

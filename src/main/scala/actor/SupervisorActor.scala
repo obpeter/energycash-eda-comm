@@ -5,7 +5,6 @@ import actor.TenantProvider.TenantStart
 import actor.commands._
 import actor.routes.ServiceRoute
 import config.Config
-import domain.mqtt.MqttEmail
 import domain.stream.MqttRequestStream
 import services.FileService
 
@@ -24,6 +23,7 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
 import mqtt.MqttSystem
+import mqtt.MqttEmail
 
 object SupervisorActor {
   private def startHttpServer(routes: Route)(implicit system: ActorSystem[_]): Unit = {

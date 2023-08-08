@@ -1,5 +1,5 @@
 package at.energydash
-package domain.dao.model
+package model.dao
 
 import java.sql.Timestamp
 

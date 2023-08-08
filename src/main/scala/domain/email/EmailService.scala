@@ -3,7 +3,6 @@ package at.energydash.domain.email
 import akka.actor.typed.ActorRef
 import akka.util.ByteString
 import at.energydash.actor.commands.EmailCommand
-import at.energydash.domain.email.Fetcher.MailMessage
 import at.energydash.model.EbMsMessage
 import courier._
 
@@ -40,12 +39,7 @@ object EmailService {
     }
   }
 
-  sealed trait Response
-
   case class SendEmailResponse(email: EbMsMessage) extends EmailCommand
 
   case class SendErrorResponse(tenant: String, message: String) extends EmailCommand
-
-  case class FetchEmailResponse(tenant: String, mails: List[MailMessage]) extends EmailCommand
-
 }

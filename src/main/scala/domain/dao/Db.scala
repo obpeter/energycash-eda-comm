@@ -1,8 +1,7 @@
 package at.energydash
-package domain.dao.spec
+package domain.dao
 
 import slick.basic.DatabaseConfig
-import slick.jdbc.JdbcBackend.Database
 import slick.jdbc.JdbcProfile
 
 

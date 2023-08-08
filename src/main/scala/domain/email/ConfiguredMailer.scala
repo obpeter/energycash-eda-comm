@@ -2,14 +2,14 @@ package at.energydash
 package domain.email
 
 import courier.Mailer
-import domain.dao.model.TenantConfig
-
 import config.{Config => AppConfig}
+
 import com.typesafe.config.Config
 import config.ConfigExtensions
 
 import java.util.Properties
 import javax.mail.{PasswordAuthentication, Session}
+import model.dao.TenantConfig
 
 object ConfiguredMailer {
 

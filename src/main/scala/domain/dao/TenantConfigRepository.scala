@@ -1,12 +1,11 @@
 package at.energydash
-package domain.dao.spec
-
-import domain.dao.model.TenantConfig
+package domain.dao
 
 import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
 
 import scala.concurrent.{ExecutionContext, Future}
+import model.dao.TenantConfig
 
 trait TenantConfigRepository {
   def all(): Future[Seq[TenantConfig]]

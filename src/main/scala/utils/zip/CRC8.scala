@@ -1,5 +1,5 @@
 package at.energydash
-package domain.util.zip
+package utils.zip
 
 import java.util.zip.Checksum
 

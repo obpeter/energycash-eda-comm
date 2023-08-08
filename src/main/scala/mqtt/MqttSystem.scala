@@ -15,11 +15,11 @@ import akka.stream.alpakka.mqtt.scaladsl.{MqttFlow, MqttMessageWithAck}
 import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
 import akka.stream.scaladsl.{Flow, Keep, RunnableGraph, Sink, Source}
 import akka.stream.{ActorAttributes, CompletionStrategy, OverflowStrategy, Supervision}
-//import akka.stream.typed.{ActorAttributes, CompletionStrategy, OverflowStrategy, Supervision}
 import akka.util.ByteString
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import org.slf4j.Logger
 
 import javax.net.ssl.SSLContext
 import scala.concurrent.Future
@@ -65,7 +65,7 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
 
 //        val act = context.messageAdapter[EdaEvent](ev => EdaEventReceived(ev, None))
 
-        val src = mqttStreamSource(baseTopic, connectionSettings(cfg))
+        val src = mqttStreamSource(baseTopic, connectionSettings(cfg))(context.log)
         val ((mqttStream, subscribed), sinkResult) = src.run()
         // add mqtt stream event handlers
         sinkResult.recover {
@@ -99,7 +99,6 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
     Behaviors.setup { implicit context =>
       Behaviors.receiveMessagePartial {
         case ev: EdaEventReceived =>
-          context.log.info("EdaEvent received ..............")
           mqttStream ! ev
           Behaviors.same
         case TerminatedWithError(err) =>
@@ -125,13 +124,12 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
         Behaviors.same
     }
 
-  private def mqttStreamSource(baseTopic: String, settings: MqttConnectionSettings): RunnableGraph[((ActorRef, Future[Done]), Future[Done])] = {
-
-    val mqttFlow: Flow[MqttMessage, MqttMessageWithAck, Future[Done]] =
-      MqttFlow.atLeastOnce(
+  private def mqttStreamSource(baseTopic: String, settings: MqttConnectionSettings)(implicit logger: Logger): RunnableGraph[((ActorRef, Future[Done]), Future[Done])] = {
+    val mqttFlow: Flow[MqttMessageWithAck, MqttMessageWithAck, Future[Done]] =
+      MqttFlow.atLeastOnceWithAck(
         settings,
         MqttSubscriptions.empty,
-        bufferSize = 8,
+        bufferSize = 16,
         MqttQoS.AtLeastOnce
       )
     val alwaysStop: Supervision.Decider = _ => Supervision.Stop
@@ -147,12 +145,20 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
     }
 
     Source
-      .actorRef[EdaEventReceived](compStage, failMatcher, 1000, OverflowStrategy.dropTail)
-      .map { edaEv => event2Mqtt(edaEv.ev)}
+      .actorRef[EdaEventReceived](compStage, failMatcher, 2000, OverflowStrategy.dropTail)
+      .map { edaEv =>
+        event2Mqtt(edaEv.ev) match {
+          case Some(e) if edaEv.ack.isDefined =>
+            Some(e.withAck(edaEv.ack.get))
+          case Some(e) =>
+            Some(e.withoutAck())
+          case _ => None
+        }
+      }
       .filter(_.isDefined)
       .map(_.get)
       .log("MQTT SERVER", x => {
-        println(s"Send MQTT Message to ${x.topic}")
+        logger.info(s"Send MQTT Message to ${x.message.topic}")
       })
       .viaMat(mqttFlow)(Keep.both)
       .toMat(Sink.ignore)(Keep.both)

@@ -2,10 +2,10 @@ package at.energydash
 package domain.eda.messages
 
 import domain.eda.message.MessageHelper
-import domain.util.zip.CRC8
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import utils.zip.CRC8
 
 class UtilSpec extends AnyWordSpec with Matchers {
 
