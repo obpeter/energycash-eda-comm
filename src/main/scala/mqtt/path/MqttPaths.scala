@@ -7,6 +7,6 @@ trait MqttPaths {
   protected def edaProtocolModulePath(tenant: String, protocolId: String) =
     s"${edaPath(tenant)}/protocol/${protocolId.toLowerCase()}"
 
-  protected def edaStateModulePath(tenant: String, moduleId: String) =
-    s"${edaPath(tenant)}/state/$moduleId"
+  protected def edaReqResPath(tenant: String, protocolId: String) =
+    s"eda/response/${edaProtocolModulePath(tenant, protocolId)}"
 }

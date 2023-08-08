@@ -116,7 +116,7 @@ class MqttRequestStreamSpec extends AnyWordSpecLike with Matchers with BeforeAnd
           case Right(m) => m shouldBe ebMsMessage
           case _ => fail()
         }
-        resp.topic shouldBe "eda/response/cp/rctest"
+        resp.topic shouldBe "eda/response/rctest/protocol/ec_podlist"
         println(resp.payload.utf8String)
       }
 //      val res1 = Future {
@@ -173,7 +173,7 @@ class MqttRequestStreamSpec extends AnyWordSpecLike with Matchers with BeforeAnd
           case Right(m) => m shouldBe EmailService.SendErrorResponse("tenant1", "Error Message")
           case _ => fail()
         }
-        resp.topic shouldBe "eda/response/error/tenant1"
+        resp.topic shouldBe "eda/response/tenant1/protocol/error"
       }
     }
   }

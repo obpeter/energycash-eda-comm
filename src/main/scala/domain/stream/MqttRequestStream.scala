@@ -55,7 +55,7 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
     ActorFlow.ask(messageStore)(MessageStorage.AddMessage).collect {
       case MessageStorage.Added(id) =>
         MqttMessage(
-          edaProtocolModulePath(id.sender, EDAMessageCodeToProcessCode(id.messageCode).toString),
+          edaReqResPath(id.sender, EDAMessageCodeToProcessCode(id.messageCode).toString),
           ByteString(id.asJson.toString()))
           .withQos(MqttQoS.AtLeastOnce).withRetained(true)
     }
@@ -107,7 +107,7 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
           .single(error)
           .via(Flow.fromFunction( err =>
             MqttMessage(
-              edaProtocolModulePath(err.tenant, "error"),
+              edaReqResPath(err.tenant, "error"),
               ByteString(err.asJson.toString().strip())).withQos(MqttQoS.AtLeastOnce).withRetained(true)
           ))
         case Right(msg) => Source
