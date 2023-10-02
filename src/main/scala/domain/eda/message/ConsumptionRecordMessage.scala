@@ -6,7 +6,7 @@ import model._
 
 import akka.util.ByteString
 import scalaxb.Helper
-import xmlprotocol.{CMRequest, ConsumptionRecord, ConsumptionRecordVersion, DATEN_CRMSG, DocumentModeType, MarketParticipantDirectoryType2, Number01Value2, Number01u4630, PRODValue, ProcessDirectoryType2, RoutingAddress, RoutingHeader}
+import xmlprotocol.{CMRequest, ConsumptionRecord, ConsumptionRecord2, ConsumptionRecordVersion, DATEN_CRMSG, DocumentModeType, MarketParticipantDirectoryType2, Number01Value2, Number01u4630, PRODValue, ProcessDirectoryType2, RoutingAddress, RoutingHeader}
 
 import java.io.StringWriter
 import java.util.{Calendar, Date}
@@ -70,16 +70,13 @@ object ConsumptionRecordMessage extends EdaResponseType {
     Try(scalaxb.fromXML[ConsumptionRecord](xmlFile)).map(document =>
       ConsumptionRecordMessage(
         EbMsMessage(
-          Some(document.ProcessDirectory.MessageId),
-          document.ProcessDirectory.ConversationId,
-          document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-          document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-          EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
-          None,
-          Some(Meter(document.ProcessDirectory.MeteringPoint, None)),
-          None,
-          None,
-          Some(document.ProcessDirectory.Energy.map(energy => Energy(
+          messageId = Some(document.ProcessDirectory.MessageId),
+          conversationId = document.ProcessDirectory.ConversationId,
+          sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
+          receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
+          messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
+          meter = Some(Meter(document.ProcessDirectory.MeteringPoint, None)),
+          energy = Some(document.ProcessDirectory.Energy.map(energy => Energy(
             energy.MeteringPeriodStart.toGregorianCalendar.getTime,
             energy.MeteringPeriodEnd.toGregorianCalendar.getTime,
             energy.MeteringIntervall.toString,
@@ -97,8 +94,41 @@ object ConsumptionRecordMessage extends EdaResponseType {
             )
           )).head
           ),
-          None,
-          None,
+        )
+      )
+    )
+  }
+}
+
+object ConsumptionRecordMessageV0303 extends EdaResponseType {
+  def fromXML(xmlFile: Elem): Try[ConsumptionRecordMessage] = {
+    Try(scalaxb.fromXML[ConsumptionRecord2](xmlFile)).map(document =>
+      ConsumptionRecordMessage(
+        EbMsMessage(
+          messageId = Some(document.ProcessDirectory.MessageId),
+          conversationId = document.ProcessDirectory.ConversationId,
+          sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
+          receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
+          messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
+          meter = Some(Meter(document.ProcessDirectory.MeteringPoint, None)),
+          energy = Some(document.ProcessDirectory.Energy.map(energy => Energy(
+            energy.MeteringPeriodStart.toGregorianCalendar.getTime,
+            energy.MeteringPeriodEnd.toGregorianCalendar.getTime,
+            energy.MeteringIntervall.toString,
+            energy.NumberOfMeteringIntervall,
+            data=energy.EnergyData.map(v =>
+              EnergyData(
+                v.MeterCode,
+                v.EP.map(vv => EnergyValue(
+                  vv.DTF.toGregorianCalendar.getTime,
+                  Some(vv.DTT.toGregorianCalendar.getTime),
+                  vv.MM.map(mm => mm.toString),
+                  vv.BQ
+                ))
+              )
+            )
+          )).head
+          ),
         )
       )
     )

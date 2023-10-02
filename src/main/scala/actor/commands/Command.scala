@@ -1,8 +1,6 @@
 package at.energydash.actor
 package commands
 
-import at.energydash.domain.email.Fetcher.MailMessage
-
 sealed trait Command
 trait Response
 

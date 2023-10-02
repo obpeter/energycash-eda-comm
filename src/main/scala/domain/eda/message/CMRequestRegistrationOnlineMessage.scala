@@ -5,7 +5,7 @@ import model.enums.{EbMsMessageType, MeterDirectionType}
 import model.{EbMsMessage, Meter, ResponseData}
 
 import scalaxb.Helper
-import xmlprotocol.{AddressType, CMNotification, CMRequest, CONSUMPTION, DocumentModeType, ECMPList, ECNumber, GENERATION, MarketParticipantDirectoryType7, Number01Value2, Number01u4610, PRODValue, ProcessDirectoryType7, ReqType, RoutingAddress, RoutingHeader, SchemaVersionType6}
+import xmlprotocol.{AddressType, CMNotification, CMRequest, CONSUMPTION, DocumentModeType, ECMPList, ECNumber, GENERATION, MarketParticipantDirectoryType8, Number01Value2, Number01u4610, PRODValue, ProcessDirectoryType8, ReqType, RoutingAddress, RoutingHeader, SchemaVersionType6}
 
 import java.util.{Calendar, Date}
 import scala.util.{Failure, Success, Try}
@@ -30,7 +30,7 @@ case class CMRequestRegistrationOnlineMessage(message: EbMsMessage) extends EdaM
     processCalendar.add(Calendar.DAY_OF_MONTH, 3)
 
     val doc = CMRequest(
-      MarketParticipantDirectoryType7(
+      MarketParticipantDirectoryType8(
         RoutingHeader(
           RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
           RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
@@ -45,7 +45,7 @@ case class CMRequestRegistrationOnlineMessage(message: EbMsMessage) extends EdaM
         )
 
       ),
-      ProcessDirectoryType7(
+      ProcessDirectoryType8(
         message.messageId.get,
         message.conversationId,
         Helper.toCalendar(dateFmt.format(calendar.getTime)),

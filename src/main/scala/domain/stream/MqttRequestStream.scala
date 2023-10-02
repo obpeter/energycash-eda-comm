@@ -108,7 +108,7 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
           .via(Flow.fromFunction( err =>
             MqttMessage(
               edaReqResPath(err.tenant, "error"),
-              ByteString(err.asJson.toString().strip())).withQos(MqttQoS.AtLeastOnce).withRetained(true)
+              ByteString(err.asJson.toString().strip())).withQos(MqttQoS.AtLeastOnce).withRetained(false)
           ))
         case Right(msg) => Source
           .single(msg)

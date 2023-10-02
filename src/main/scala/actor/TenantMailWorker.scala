@@ -35,7 +35,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EmailCommand],
       val mailActor = context.spawn(TenantMailActor(tenant, messageStore, mailRepo), name = "mail-actor")
 
       def activated(mailActor: ActorRef[EmailCommand]): Behavior[EmailCommand] = {
-        println("Activate Tenant Worker")
+        context.log.info(s"Activate Tenant Worker for tenant ${tenant.tenant}")
         Behaviors.receiveMessage[EmailCommand] {
           case Refresh =>
             mailActor ! FetchEmailCommand(tenant.tenant, "", mqttPublisher)

@@ -58,17 +58,33 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
                 ))
   }
 
+  def parseProcessName(processName: String): Option[(String, String)] = {
+    val pattern = """([A-Za-z_-]*)(_(\d+\.\d+)){0,1}""".r
+    try {
+      val pattern (protocol, _, version) = processName
+      logger.info(s"Admin received Protocol: ${protocol} Version: ${version}")
+      Some (protocol, version)
+    } catch {
+      case e: MatchError =>
+      logger.error (s"Error ProcessInfo: ${e.getMessage ()}")
+      Some ("ERROR", "")
+      case _: Throwable =>
+      None
+    }
+  }
+
   def handleUpload(formData: Multipart.FormData): Future[Done] = {
   formData.parts
     .map(part => FileInfo(part))
-    .mapAsync(1)(info => bodyPart2Xml(info.bodyPart).map(xml =>
-      MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(info.processName)) match {
+    .mapAsync(1)(info => bodyPart2Xml(info.bodyPart).map(xml => {
+      val Some((processName, version)) = parseProcessName(info.processName)
+      MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(processName), version) match {
         case Some(t) => t.fromXML(xml) match {
           case Success(p) => EdaNotification(info.processName, p)
           case Failure(exception) => EdaNotification("error", edaErrorMessage(exception.toString))
         }
         case None => EdaNotification("error", edaErrorMessage("Unknown process type"))
-      }
+      }}
     ))
     .map(p => mqttPublisher ! MqttPublish(List(p)))
     .runWith(Sink.ignore)

@@ -5,7 +5,7 @@ import model.enums.{EbMsMessageType, MeterDirectionType}
 import model.{EbMsMessage, Meter}
 
 import scalaxb.Helper
-import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECMPList, ECNumber, MarketParticipantDirectoryType9, Number01Value2, Number01u4612Value, PRODValue, ProcessDirectoryType9, RoutingAddress, RoutingHeader, SchemaVersionType8}
+import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECMPList, ECNumber, MarketParticipantDirectoryType10, Number01Value2, Number01u4612Value, PRODValue, ProcessDirectoryType10, RoutingAddress, RoutingHeader, SchemaVersionType8}
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, TimeZone}
@@ -35,7 +35,7 @@ case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPReq
     val dateFmt = new SimpleDateFormat("yyyy-MM-dd")
 
     val doc = CPRequest(
-      MarketParticipantDirectoryType9(
+      MarketParticipantDirectoryType10(
         RoutingHeader(
           RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
           RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
@@ -49,7 +49,7 @@ case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPReq
           ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType8](Number01u4612Value)),
         )
       ),
-      ProcessDirectoryType9(
+      ProcessDirectoryType10(
         message.messageId.get,
         message.conversationId,
         Helper.toCalendar(dateFmt.format(processCalendar.getTime)),

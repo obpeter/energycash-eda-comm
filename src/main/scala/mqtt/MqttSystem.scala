@@ -77,8 +77,6 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
           context.self ! MQTTConnected
         }
 
-        context.self ! MQTTConnected
-
         Behaviors.receiveMessagePartial[MqttCmd] {
           case MQTTConnected =>
             context.log.info("mqtt client successfully connected")
@@ -186,7 +184,7 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
 
   private def eventToMqttMessage(event: EdaEvent): Option[MqttMessage] = {
     val value = event.message.asJson.deepDropNullValues.noSpaces
-    Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(value)).withRetained(true))
+    Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(value)).withRetained(false))
   }
 
   private implicit class MqttMessageAckExt(msg: MqttMessage) {

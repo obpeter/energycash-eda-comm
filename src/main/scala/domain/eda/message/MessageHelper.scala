@@ -3,7 +3,7 @@ package domain.eda.message
 
 import model.EbMsMessage
 import model.enums.EbMsMessageType.{EDA_MSG_AUFHEBUNG_CCMC, EDA_MSG_AUFHEBUNG_CCMI, EDA_MSG_AUFHEBUNG_CCMS, EEG_BASE_DATA, ENERGY_FILE_RESPONSE, ENERGY_SYNC_REQ, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT, ZP_LIST}
-import model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_LIST_METERINGPOINTS, PROCESS_METERINGPOINTS_VALUE, PROCESS_REGISTER_ONLINE, PROCESS_REVOKE_VALUE}
+import model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_ENERGY_RESPONSE_V0303, PROCESS_LIST_METERINGPOINTS, PROCESS_METERINGPOINTS_VALUE, PROCESS_REGISTER_ONLINE, PROCESS_REVOKE_CUS, PROCESS_REVOKE_VALUE}
 
 import com.google.common.io.BaseEncoding
 import org.slf4j.LoggerFactory
@@ -33,13 +33,19 @@ object MessageHelper {
     }
   }
 
-  def getEdaMessageFromHeader(processCode: EbMsProcessType): Option[EdaResponseType] = {
+  def getEdaMessageFromHeader(processCode: EbMsProcessType, version: String): Option[EdaResponseType] = {
     processCode match {
-      case PROCESS_ENERGY_RESPONSE => Some(ConsumptionRecordMessage)
+      case PROCESS_ENERGY_RESPONSE => {
+        version match {
+          case "03.03" => Some(ConsumptionRecordMessageV0303)
+          case _ => Some(ConsumptionRecordMessage)
+        }
+      }
+      case PROCESS_ENERGY_RESPONSE_V0303 => Some(ConsumptionRecordMessageV0303)
       case PROCESS_REGISTER_ONLINE => Some(CMRequestRegistrationOnlineMessage)
       case PROCESS_LIST_METERINGPOINTS => Some(CPRequestZPListMessage)
       case PROCESS_METERINGPOINTS_VALUE => Some(CPRequestMeteringValueMessage)
-      case PROCESS_REVOKE_VALUE => Some(CMRevokeMessage)
+      case PROCESS_REVOKE_VALUE | PROCESS_REVOKE_CUS => Some(CMRevokeMessage)
       case _ =>
         logger.warn(s"Wrong ProcessCode: ${processCode}")
         None

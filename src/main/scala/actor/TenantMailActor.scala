@@ -5,7 +5,7 @@ import actor.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish, MqttPubli
 import actor.commands.EmailCommand
 import domain.dao.SlickEmailOutboxRepository
 import domain.email.EmailService.{SendEmailCommand, SendEmailResponse, SendErrorResponse}
-import domain.email.Fetcher.{ErrorMessage, FetcherContext, MailContent, MailMessage}
+import domain.email.Fetcher.{FetcherContext, MailContent, MailMessage}
 import domain.email.{ConfiguredMailer, Fetcher}
 import model.dao.TenantConfig
 
@@ -15,8 +15,8 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.Timeout
 import org.slf4j.{Logger, LoggerFactory}
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 
@@ -38,36 +38,46 @@ class TenantMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[Message
 
     context.setLoggerName(TenantMailActor.getClass)
 
+    def distributeMail(req: FetchEmailCommand)(mail: MailContent) = {
+        mail match {
+          case m: MailMessage =>
+            val n = for {
+              sm <- messageStore.ask(ref => MessageStorage.FindById(m.content.message.conversationId, ref)).map {
+                case MessageStorage.MessageNotFound(_) => m.content
+                case MessageStorage.MessageFound(storedMessage) => mergeEbmsMessage(storedMessage.message, m.content)
+              }
+            } yield EdaNotification(m.protocol, sm) :: Nil
+            n.onComplete {
+              case Success(n) => req.replyTo ! MqttPublish(n)
+              case Failure(e) => req.replyTo ! MqttPublishError(req.tenant, s"$e - ${e.getMessage}")
+            }
+        }
+    }
+
     def work(): Behavior[EmailCommand] = {
       Behaviors.receiveMessage {
         case req: FetchEmailCommand =>
-          req.fetchEmail(req.subject) match {
-            case Success(msgs) => {
-                Future.sequence(msgs.map {
-                  case m: MailMessage =>
-                    for {
-                      sm <- messageStore.ask(ref => MessageStorage.FindById(m.content.message.conversationId, ref)).map {
-                        case MessageStorage.MessageNotFound(_) => m.content
-                        case MessageStorage.MessageFound(storedMessage) => mergeEbmsMessage(storedMessage.message, m.content)
-                      }
-                      _ <- Future {Fetcher().deleteById(m.id)}
-                    } yield EdaNotification(m.protocol, sm)
-                  case m: ErrorMessage =>
-                    for {
-                      mm <- Future {
-                        Fetcher().deleteById(m.id)
-                        m.content
-                      }
-                    } yield EdaNotification("ERROR", mm)
-                }).onComplete {
-                  case Success(n: List[EdaNotification]) => req.replyTo ! MqttPublish(n)
-                  case Failure(e) => req.replyTo ! MqttPublishError(req.tenant, e.getMessage)
-                }
-            }
-            case Failure(ex) =>
-              context.log.error(ex.getMessage)
-              req.replyTo ! MqttPublishError(req.tenant, ex.getMessage)
-          }
+          req.fetchEmail(req.subject, distributeMail(req))
+//          req.fetchEmail(req.subject) match {
+//            case Success(msgs) => {
+//                Future.sequence(msgs.map {
+//                  case m: MailMessage =>
+//                    for {
+//                      sm <- messageStore.ask(ref => MessageStorage.FindById(m.content.message.conversationId, ref)).map {
+//                        case MessageStorage.MessageNotFound(_) => m.content
+//                        case MessageStorage.MessageFound(storedMessage) => mergeEbmsMessage(storedMessage.message, m.content)
+//                      }
+//                    } yield EdaNotification(m.protocol, sm)
+//                  case m: ErrorMessage => Future(EdaNotification("ERROR",m.content))
+//                }).onComplete {
+//                  case Success(n: List[EdaNotification]) => req.replyTo ! MqttPublish(n)
+//                  case Failure(e) => req.replyTo ! MqttPublishError(req.tenant, s"$e - ${e.getMessage}")
+//                }
+//            }
+//            case Failure(ex) =>
+//              context.log.error(ex.getMessage)
+//              req.replyTo ! MqttPublishError(req.tenant, ex.getMessage)
+//          }
           Behaviors.same
         case req: SendEmailCommand =>
           context.log.info(s"Send Mail to ${req.email.toEmail}")
@@ -91,9 +101,9 @@ class TenantMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[Message
 object TenantMailActor {
   case class FetchEmailCommand(tenant: String, subject: String, replyTo: ActorRef[MqttCommand]) extends EmailCommand {
     import com.typesafe.config.Config
-    def fetchEmail(searchTerm: String)(implicit ex: ExecutionContext, ctx: FetcherContext): Try[List[MailContent]] = {
+    def fetchEmail(searchTerm: String, distributeMessage: MailContent => Unit)(implicit ex: ExecutionContext, ctx: FetcherContext): Unit /*Try[List[MailContent]]*/ = {
       Try(
-        Fetcher().fetch(searchTerm)
+        Fetcher().fetch(searchTerm, distributeMessage)
       )
     }
   }

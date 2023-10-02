@@ -1,9 +1,11 @@
 package at.energydash
 package domain.email
 
+import domain.dao.{Db, SlickEmailOutboxRepository}
 import domain.eda.message.CPRequestZPListMessage
-import domain.email.Fetcher.{ErrorMessage, FetcherContext, MailMessage}
+import domain.email.Fetcher.{ErrorMessage, FetcherContext, MailMessage, ErrorParseMessage}
 import model.EbMsMessage
+import model.dao.TenantConfig
 
 import courier.Multipart
 import org.jvnet.mock_javamail.Mailbox
@@ -15,9 +17,6 @@ import javax.mail.internet.{InternetAddress, MimeMessage}
 import scala.io.Source
 import scala.language.implicitConversions
 import scala.xml.XML
-
-import model.dao.TenantConfig
-import domain.dao.{Db, SlickEmailOutboxRepository}
 
 class FetcherSpec extends AnyWordSpecLike with Matchers {
 
@@ -41,26 +40,32 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
       mailMsg.setFrom("test@email.com")
       mailMsg.setContent(Multipart()
         .attachBytes(
-          attachement.toString().getBytes, "test.xml", "text/xml")
-        .html("Hallo").parts)
+          attachement.toString().getBytes, "test.xml", "text/xml").parts
+        /*.html("Hallo").parts*/)
 
       Mailbox.get("sepp@email.com").add(mailMsg)
 
       val fetcher: Fetcher = Fetcher()
-      val msgs = fetcher.fetch("[")(FetcherContext(tenant, session, emailRepo))
+      fetcher.fetch("[", {
+        case msg: MailMessage =>
+          msg.content shouldBe a[CPRequestZPListMessage]
+          msg.messageId shouldBe "123456"
+          msg.protocol shouldBe "EC_PODLIST"
+          msg.content.message shouldBe a[EbMsMessage]
 
-      msgs should have size 1
-      msgs shouldBe a[List[MailMessage]]
-      val msg: MailMessage = msgs.head.asInstanceOf[MailMessage]
-      msg.content shouldBe a[CPRequestZPListMessage]
-      msg.messageId shouldBe "123456"
-      msg.protocol shouldBe "EC_PODLIST"
-      msg.content.message shouldBe a[EbMsMessage]
+          msg.content.message.meterList shouldBe defined
+          msg.content.message.meterList.get should have size 3
+      })(FetcherContext(tenant, session, emailRepo))
 
-      msg.content.message.meterList shouldBe defined
-      msg.content.message.meterList.get should have size 3
+      Mailbox.get("sepp@email.com").isEmpty shouldBe true
 
       Mailbox.clearAll()
+
+//      val filePath = new File("/home/petero/projects/sepphuber/willtesten")
+//      if (!filePath.exists()) filePath.mkdirs()
+//      val file = new File(filePath, "test.eml")
+//      file.createNewFile()
+//      new FileOutputStream(file).write(attachement.toString().getBytes())
     }
 
     "fetch an error response" in {
@@ -82,16 +87,15 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
       Mailbox.get("sepp@email.com").add(mailMsg)
 
       val fetcher: Fetcher = Fetcher()
-      val msgs = fetcher.fetch("")(FetcherContext(tenant, session, emailRepo))
+      fetcher.fetch("", {
+        case msg: ErrorMessage =>
+          msg.content.message.errorMessage shouldBe Some(
+                        """Der Messenger hat eine Fehlermeldung zurueck geliefert. Beschreibung: 'Validation failed.  Reason: 2 XML errors found while validating with (ANFORDERUNG_ECP 01.00/EC_PODLIST_01.00)
+                          |   (Line 2 / Column 1154) cvc-minLength-valid: Value &apos;&apos; with length = &apos;0&apos; is not facet-valid with respect to minLength &apos;1&apos; for type &apos;MeteringPoint&apos;.
+                          |   (Line 2 / Column 1154) cvc-type.3.1.3: The value &apos;&apos; of element &apos;ct:MeteringPoint&apos; is not valid.'""".stripMargin)
+      })(FetcherContext(tenant, session, emailRepo))
 
-      msgs should have size 1
-      msgs shouldBe a[List[ErrorMessage]]
-      val msg: ErrorMessage = msgs.head.asInstanceOf[ErrorMessage]
-      msg.content.message.errorMessage shouldBe Some(
-        """Der Messenger hat eine Fehlermeldung zurueck geliefert. Beschreibung: 'Validation failed.  Reason: 2 XML errors found while validating with (ANFORDERUNG_ECP 01.00/EC_PODLIST_01.00)
-          |   (Line 2 / Column 1154) cvc-minLength-valid: Value &apos;&apos; with length = &apos;0&apos; is not facet-valid with respect to minLength &apos;1&apos; for type &apos;MeteringPoint&apos;.
-          |   (Line 2 / Column 1154) cvc-type.3.1.3: The value &apos;&apos; of element &apos;ct:MeteringPoint&apos; is not valid.'""".stripMargin)
-
+      Mailbox.get("sepp@email.com").isEmpty shouldBe true
       Mailbox.clearAll()
     }
 
@@ -108,12 +112,11 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
       Mailbox.get("sepp@email.com").add(mailMsg)
 
       val fetcher: Fetcher = Fetcher()
-      val msgs = fetcher.fetch("")(FetcherContext(tenant, session, emailRepo))
+      fetcher.fetch("", {
+        case msg: ErrorMessage => msg.content.message.errorMessage shouldBe Some("No Attachement")
+      })(FetcherContext(tenant, session, emailRepo))
 
-      msgs should have size 1
-      msgs shouldBe a[List[ErrorMessage]]
-      val msg: ErrorMessage = msgs.head.asInstanceOf[ErrorMessage]
-      msg.content.message.errorMessage shouldBe Some("No Attachement")
+      Mailbox.get("sepp@email.com").isEmpty shouldBe true
 
       Mailbox.clearAll()
     }
@@ -131,12 +134,11 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
       Mailbox.get("sepp@email.com").add(mailMsg)
 
       val fetcher: Fetcher = Fetcher()
-      val msgs = fetcher.fetch("")(FetcherContext(tenant, session, emailRepo))
+      fetcher.fetch("", {
+        case msg: ErrorMessage => msg.content.message.errorMessage shouldBe Some("No Attachement")
+      })(FetcherContext(tenant, session, emailRepo))
 
-      msgs should have size 1
-      msgs shouldBe a[List[ErrorMessage]]
-      val msg: ErrorMessage = msgs.head.asInstanceOf[ErrorMessage]
-      msg.content.message.errorMessage shouldBe Some("No Attachement")
+      Mailbox.get("sepp@email.com").isEmpty shouldBe true
 
       Mailbox.clearAll()
     }
@@ -146,25 +148,50 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
       val session = ConfiguredMailer.getSession(tenantConfig)
 
       val mailMsg: Message = new MimeMessage(session)
-      val attachement = XML.load(Source.fromResource("error.xml").reader())
+      val attachment = XML.load(Source.fromResource("error.xml").reader())
 
       mailMsg.setSubject("[EC_PODLIST_01.00 MessageId=123456]")
       mailMsg.setHeader("Message-ID", "1")
       mailMsg.setFrom("test@email.com")
       mailMsg.setContent(Multipart()
-        .attachBytes(attachement.toString().getBytes, "test.xml", "text/xml")
-        .attachBytes(attachement.toString().getBytes, "test1.xml", "text/xml")
+        .attachBytes(attachment.toString().getBytes, "test.xml", "text/xml")
+        .attachBytes(attachment.toString().getBytes, "test1.xml", "text/xml")
         .html("Hallo").parts)
 
       Mailbox.get("sepp@email.com").add(mailMsg)
 
       val fetcher: Fetcher = Fetcher()
-      val msgs = fetcher.fetch("")(FetcherContext(tenant, session, emailRepo))
+      fetcher.fetch("", {
+        case msg: ErrorMessage => msg.content.message.errorMessage shouldBe Some("No Attachement")
+      })(FetcherContext(tenant, session, emailRepo))
 
-      msgs should have size 1
-      msgs shouldBe a[List[ErrorMessage]]
-      val msg: ErrorMessage = msgs.head.asInstanceOf[ErrorMessage]
-      msg.content.message.errorMessage shouldBe Some("No Attachement")
+      Mailbox.get("sepp@email.com").isEmpty shouldBe true
+
+      Mailbox.clearAll()
+    }
+
+    "fetch a response with wrong attachement" in {
+      val tenant = "myeeg"
+      val session = ConfiguredMailer.getSession(tenantConfig)
+
+      val mailMsg: Message = new MimeMessage(session)
+      val attachment = XML.load(Source.fromResource("CR_MSG_03.03_AT1234567890.xml").reader())
+
+      mailMsg.setSubject("[CR_MSG_01.00 MessageId=123456]")
+      mailMsg.setHeader("Message-ID", "1")
+      mailMsg.setFrom("test@email.com")
+      mailMsg.setContent(Multipart()
+        .attachBytes(attachment.toString().getBytes, "test.xml", "text/xml")
+        .html("Hallo").parts)
+
+      Mailbox.get("sepp@email.com").add(mailMsg)
+
+      val fetcher: Fetcher = Fetcher()
+      fetcher.fetch("", {
+        case msg: ErrorParseMessage => _
+      })(FetcherContext(tenant, session, emailRepo))
+
+      Mailbox.get("sepp@email.com").isEmpty shouldBe false
 
       Mailbox.clearAll()
     }
