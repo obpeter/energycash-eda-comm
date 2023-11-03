@@ -188,7 +188,7 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
 
       val fetcher: Fetcher = Fetcher()
       fetcher.fetch("", {
-        case msg: ErrorParseMessage => _
+        case msg: ErrorParseMessage => ???
       })(FetcherContext(tenant, session, emailRepo))
 
       Mailbox.get("sepp@email.com").isEmpty shouldBe false
