@@ -29,7 +29,7 @@ object AdminServer {
   def apply(mailService: ActorRef[EmailCommand], system: ActorSystem[_]) = new AdminServer(mailService, system).run
 }
 
-class AdminServer(mailService: ActorRef[EmailCommand], system: ActorSystem[_]) {
+class AdminServer(tenantProvider: ActorRef[EmailCommand], system: ActorSystem[_]) {
   def run(): Future[Http.ServerBinding] = {
     implicit val sys = system
     implicit val ec: ExecutionContext = system.executionContext
@@ -42,7 +42,7 @@ class AdminServer(mailService: ActorRef[EmailCommand], system: ActorSystem[_]) {
       SendMailServiceHandler.partial(new SendMailServiceImpl(AdminServer.mailSession))
 
     val adminService: PartialFunction[HttpRequest, Future[HttpResponse]] = {
-      RegisterPontonServiceHandler.partial(new AdminServiceImpl(mailService))
+      RegisterPontonServiceHandler.partial(new AdminServiceImpl(tenantProvider))
     }
 
     val services: HttpRequest => Future[HttpResponse] = ServiceHandler.concatOrNotFound(mailerService, adminService)

@@ -10,7 +10,7 @@ import akka.Done
 import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.http.scaladsl.model.Multipart.BodyPart
 import akka.http.scaladsl.model.{BodyPartEntity, Multipart}
-import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
 import akka.util.ByteString
@@ -18,7 +18,6 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
-import akka.http.scaladsl.unmarshalling.Unmarshaller
 
 
 trait FileService {
@@ -80,7 +79,7 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
       val Some((processName, version)) = parseProcessName(info.processName)
       MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(processName), version) match {
         case Some(t) => t.fromXML(xml) match {
-          case Success(p) => EdaNotification(info.processName, p)
+          case Success(p) => EdaNotification(processName, p)
           case Failure(exception) => EdaNotification("error", edaErrorMessage(exception.toString))
         }
         case None => EdaNotification("error", edaErrorMessage("Unknown process type"))

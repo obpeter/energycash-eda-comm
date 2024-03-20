@@ -4,8 +4,9 @@ package actor
 import actor.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
 import actor.commands.EmailCommand
 import domain.dao.SlickEmailOutboxRepository
+import domain.eda.message.EdaErrorMessage
 import domain.email.EmailService.{SendEmailCommand, SendEmailResponse, SendErrorResponse}
-import domain.email.Fetcher.{FetcherContext, MailContent, MailMessage}
+import domain.email.Fetcher.{ErrorMessage, FetcherContext, MailContent, MailMessage}
 import domain.email.{ConfiguredMailer, Fetcher}
 import model.dao.TenantConfig
 
@@ -51,6 +52,9 @@ class TenantMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[Message
               case Success(n) => req.replyTo ! MqttPublish(n)
               case Failure(e) => req.replyTo ! MqttPublishError(req.tenant, s"$e - ${e.getMessage}")
             }
+          case ErrorMessage(_, protocol, content) =>
+            val c = EdaErrorMessage(content.message.copy(receiver = tenant))
+            req.replyTo ! MqttPublish(EdaNotification(protocol = protocol, message = c) :: Nil)
         }
     }
 

@@ -26,16 +26,21 @@ object EmailService {
 
     private def shippingEmail(mailer: Mailer)(implicit ex: ExecutionContext): Future[Unit] = {
       println(s"About to send Email ${email.tenant}@${domain} to ${email.toEmail}@${domain}")
-      val myFormatObj = DateTimeFormatter.ofPattern("yyyyMMdd")
-      val envelope = Envelope
-        .from(new InternetAddress(s"${email.tenant}@${domain}"))
-        .to(new InternetAddress(s"${email.toEmail}@${domain}"))
-        .subject(email.subject)
-        .content(Multipart()
-          .attachBytes(email.attachment.toArray,
-            s"${LocalDateTime.now().format(myFormatObj)}_${email.data.messageCode.toString}_${email.data.sender}.xml", "text/xml")
-          .html(s"Attachment for Process ${email.data.messageCode.toString}"))
-      mailer(envelope)
+      try {
+        val myFormatObj = DateTimeFormatter.ofPattern("yyyyMMdd")
+
+        val envelope = Envelope
+          .from(new InternetAddress(s"${email.tenant}@${domain}"))
+          .to(new InternetAddress(s"${email.toEmail}@${domain}"))
+          .subject(email.subject)
+          .content(Multipart()
+            .attachBytes(email.attachment.toArray,
+              s"${LocalDateTime.now().format(myFormatObj)}_${email.data.messageCode.toString}_${email.data.sender}.xml", "text/xml")
+            .html(s"Attachment for Process ${email.data.messageCode.toString}"))
+        mailer(envelope)
+      } catch {
+        case e:Throwable => Future.failed(e)
+      }
     }
   }
 

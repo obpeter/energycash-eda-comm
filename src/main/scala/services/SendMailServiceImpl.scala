@@ -15,7 +15,7 @@ import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 
 case class InlineAttachment(contentId: String, filename: String, mimeType: String, content: ByteString)
-case class MailInlineMessage(from: String, to: String, subject: String, htmlBody: String, inlineContent: Seq[InlineAttachment])
+case class MailInlineMessage(from: String, to: String, cc: Option[String], subject: String, htmlBody: String, inlineContent: Seq[InlineAttachment])
 
 class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_]) extends SendMailService {
   implicit val timeout: Timeout = 10.seconds
@@ -28,7 +28,7 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
   override def sendMailWithInlineAttachment(in: SendMailWithInlineAttachmentsRequest): Future[SendMailReply] = {
     val from = "no-reply@eegfaktura.at"
     val inlineMail = MailInlineMessage(
-      from = from, to = in.recipient, subject = in.subject,
+      from = from, to = in.recipient, in.cc, subject = in.subject,
       htmlBody = in.htmlBody, inlineContent = in.attachments.flatMap(a => if (a.contentId.isEmpty) None else Some(InlineAttachment(a.contentId.get, a.filename, a.mimeType, ByteString(a.content.toByteArray)))))
 
     shippingInlineHtmlEmail(ConfiguredMailer.createMailerFromSession(session), inlineMail).transformWith {
@@ -58,6 +58,6 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
       .subject(email.subject)
       .content(mailContent)
 
-    mailer(envelope)(ec)
+    mailer(if (email.cc.isDefined) envelope.cc(new InternetAddress(email.cc.get)) else envelope)(ec)
   }
 }

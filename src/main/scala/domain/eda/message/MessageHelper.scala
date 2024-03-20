@@ -3,7 +3,7 @@ package domain.eda.message
 
 import model.EbMsMessage
 import model.enums.EbMsMessageType.{EDA_MSG_AUFHEBUNG_CCMC, EDA_MSG_AUFHEBUNG_CCMI, EDA_MSG_AUFHEBUNG_CCMS, EEG_BASE_DATA, ENERGY_FILE_RESPONSE, ENERGY_SYNC_REQ, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT, ZP_LIST}
-import model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_ENERGY_RESPONSE_V0303, PROCESS_LIST_METERINGPOINTS, PROCESS_METERINGPOINTS_VALUE, PROCESS_REGISTER_ONLINE, PROCESS_REVOKE_CUS, PROCESS_REVOKE_VALUE}
+import model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_ENERGY_RESPONSE_V0303, PROCESS_LIST_METERINGPOINTS, PROCESS_METERINGPOINTS_VALUE, PROCESS_REGISTER_ONLINE, PROCESS_REVOKE_CUS, PROCESS_REVOKE_VALUE, PROCESS_REVOKE_SP}
 
 import com.google.common.io.BaseEncoding
 import org.slf4j.LoggerFactory
@@ -16,13 +16,17 @@ import utils.zip.CRC8
 object MessageHelper {
 
   var logger = LoggerFactory.getLogger("MessageHelper")
+
+  /**
+   * Extract Message Type for Sending to Marktteilnehmer.
+   */
   def getEdaMessageByType(message: EbMsMessage): EdaMessage[_] = {
     message.messageCode match {
       case ONLINE_REG_INIT => CMRequestRegistrationOnlineMessage(message)
       case ZP_LIST => CPRequestZPListMessage(message)
       case EEG_BASE_DATA => CPRequestBaseDataMessage(message)
       case ENERGY_SYNC_REQ => CPRequestMeteringValueMessage(message)
-      case EDA_MSG_AUFHEBUNG_CCMS => CMRevokeMessage(message)
+      case EDA_MSG_AUFHEBUNG_CCMS => CMRevokeRequest(message)
     }
   }
 
@@ -33,6 +37,12 @@ object MessageHelper {
     }
   }
 
+  /**
+   * Lookup for Message object according to Message type. Incoming messages.
+   * @param processCode
+   * @param version
+   * @return
+   */
   def getEdaMessageFromHeader(processCode: EbMsProcessType, version: String): Option[EdaResponseType] = {
     processCode match {
       case PROCESS_ENERGY_RESPONSE => {
@@ -46,6 +56,7 @@ object MessageHelper {
       case PROCESS_LIST_METERINGPOINTS => Some(CPRequestZPListMessage)
       case PROCESS_METERINGPOINTS_VALUE => Some(CPRequestMeteringValueMessage)
       case PROCESS_REVOKE_VALUE | PROCESS_REVOKE_CUS => Some(CMRevokeMessage)
+      case PROCESS_REVOKE_SP => Some(CMRevokeRequest)
       case _ =>
         logger.warn(s"Wrong ProcessCode: ${processCode}")
         None
@@ -58,7 +69,8 @@ object MessageHelper {
       case EEG_BASE_DATA => PROCESS_LIST_METERINGPOINTS
       case ONLINE_REG_INIT => PROCESS_REGISTER_ONLINE
       case ENERGY_SYNC_REQ => PROCESS_METERINGPOINTS_VALUE
-      case EDA_MSG_AUFHEBUNG_CCMS | EDA_MSG_AUFHEBUNG_CCMC | EDA_MSG_AUFHEBUNG_CCMI => PROCESS_REVOKE_VALUE
+      case EDA_MSG_AUFHEBUNG_CCMC | EDA_MSG_AUFHEBUNG_CCMI => PROCESS_REVOKE_VALUE
+      case EDA_MSG_AUFHEBUNG_CCMS => PROCESS_REVOKE_SP
     }
   }
 

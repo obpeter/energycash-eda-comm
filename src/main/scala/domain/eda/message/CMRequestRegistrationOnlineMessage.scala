@@ -115,18 +115,13 @@ object CMRequestRegistrationOnlineMessage extends EdaResponseType {
         case _ => Try(scalaxb.fromXML[CMNotification](xmlFile)).map(document =>
           CMRequestRegistrationOnlineMessage(
             EbMsMessage(
-              Some(document.ProcessDirectory.MessageId),
-              document.ProcessDirectory.ConversationId,
-              document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-              document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-              EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode),
-              Some(document.ProcessDirectory.CMRequestId),
-              None,
-              None,
-              Some(document.ProcessDirectory.ResponseData.map(r => ResponseData(r.MeteringPoint, r.ResponseCode))),
-              None,
-              None,
-              None,
+              messageId=Some(document.ProcessDirectory.MessageId),
+              conversationId=document.ProcessDirectory.ConversationId,
+              sender=document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
+              receiver=document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
+              messageCode=EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode),
+              requestId=Some(document.ProcessDirectory.CMRequestId),
+              responseData=Some(document.ProcessDirectory.ResponseData.map(r => ResponseData(r.MeteringPoint, r.ResponseCode))),
             )
           )
         )

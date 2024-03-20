@@ -19,6 +19,7 @@ object MqttEmail {
         Config.getMqttMailConfig.consumerId,
         new MemoryPersistence)
       .withAutomaticReconnect(true)
+      .withCleanSession(false)
 
   def mqttSource: Source[MqttMessage, Future[Done]] = MqttSource.atMostOnce(
     consumerSettings,

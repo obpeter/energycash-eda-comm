@@ -3,6 +3,7 @@ package actor
 
 import config.Config
 import domain.eda.message._
+import mqtt.CommandMessage
 import mqtt.MqttProtocol._
 
 import akka.actor.typed.scaladsl.Behaviors
@@ -16,9 +17,11 @@ import io.circe.syntax._
 
 object MqttPublisher extends StrictLogging{
   import model.JsonImplicit._
+
   trait MqttCommand
   case class EdaNotification(protocol: String, message: EdaMessage[_])
   case class MqttPublish(mails: List[EdaNotification]/*, mailProvider: ActorRef[EmailCommand]*/) extends MqttCommand
+  case class MqttPublishCommand(command: CommandMessage) extends MqttCommand
   case class MqttPublishError(tenant: String, message: String) extends MqttCommand
 
   def apply(mqttSystem: ActorRef[MqttCmd]): Behavior[MqttCommand] = {
@@ -41,6 +44,9 @@ object MqttPublisher extends StrictLogging{
         Behaviors.receiveMessage {
           case MqttPublish(notification) =>
             notification.foreach(x => mqttSystem ! EdaEventReceived(EdaInboundMessage(x.protocol, x.message.message), None))
+            Behaviors.same
+          case MqttPublishCommand(command) =>
+            mqttSystem ! EdaMessageCommand(command, None)
             Behaviors.same
           case MqttPublishError(tenantId, msg) =>
             ctx.log.info(s"Error ${tenantId} ${msg}")

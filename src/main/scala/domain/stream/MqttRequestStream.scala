@@ -20,10 +20,10 @@ import akka.{Done, NotUsed}
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe.syntax._
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
-import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
 class MqttRequestStream(mailService: ActorRef[EmailCommand],
                              messageTransformer: ActorRef[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]],
@@ -33,8 +33,8 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
   import model.JsonImplicit._
 
   implicit val timeout: Timeout = Timeout(15.seconds)
-  implicit val ec = system.executionContext
-  var logger = LoggerFactory.getLogger(classOf[MqttRequestStream])
+  implicit val ec: ExecutionContextExecutor = system.executionContext
+  var logger: Logger = LoggerFactory.getLogger(classOf[MqttRequestStream])
 
 
   private val decodingFlow: Flow[String, Either[MqttMessage, EbMsMessage], NotUsed] = {
@@ -57,7 +57,7 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
         MqttMessage(
           edaReqResPath(id.sender, EDAMessageCodeToProcessCode(id.messageCode).toString),
           ByteString(id.asJson.toString()))
-          .withQos(MqttQoS.AtLeastOnce).withRetained(true)
+          .withQos(MqttQoS.atMostOnce).withRetained(false)
     }
 
   private val prepareEmailMessageFlow: Flow[EbMsMessage, EmailService.EmailModel, NotUsed] =
@@ -67,7 +67,7 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
       val to = data.receiver.toUpperCase()
       val tenant = data.sender.toUpperCase()
 
-      logger.debug(s"Prepare Email Message Flow: ${data}")
+      logger.debug(s"Prepare Email Message Flow: $data")
       EmailService.EmailModel(tenant = tenant, toEmail = to,
         subject = subject, attachment = attachment, data = data)
     })
@@ -84,7 +84,8 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
         .to(errorSink)
 
     source
-      .map(msg => (msg.payload.utf8String))
+      .map(msg => msg.payload.utf8String)
+      .log("MQTT Receiver")
 //      .map(m => {
 //        println("####### ", m)
 //        m
@@ -96,10 +97,9 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
         ActorFlow.ask(parallelism = 1)(mailService)((msg: EmailService.EmailModel, replyTo: ActorRef[EmailCommand]) =>
           DistributeMail(msg.tenant, msg, replyTo)).collect {
           case EmailService.SendEmailResponse(msg) => Right(msg)
-          case err : EmailService.SendErrorResponse => {
-            logger.error(s"Receive Errormessage sending Mail ${err}")
+          case err : EmailService.SendErrorResponse =>
+            logger.error(s"Receive Errormessage sending Mail $err")
             Left(err)
-          }
         }
       )
       .flatMapConcat {

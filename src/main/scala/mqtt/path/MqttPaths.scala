@@ -12,10 +12,13 @@ trait MqttPaths {
     }
   }
 
-  protected def edaPath(tenant: String) = tenant.toLowerCase()
+  private def edaPath(tenant: String) = if (tenant == "") "error" else tenant.toLowerCase()
 
   protected def edaProtocolModulePath(tenant: String, protocolId: String) =
     s"${edaPath(tenant)}/protocol/${normalizeProtocolId(protocolId)}"
+
+  protected def edaCommandModulePath(tenant: String, protocolId: String) =
+    s"${edaPath(tenant)}/command/${normalizeProtocolId(protocolId)}"
 
   protected def edaReqResPath(tenant: String, protocolId: String) =
     s"eda/response/${edaProtocolModulePath(tenant, protocolId)}"

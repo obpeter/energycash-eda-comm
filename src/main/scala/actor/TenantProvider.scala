@@ -1,22 +1,25 @@
 package at.energydash
 package actor
 
-import actor.MqttPublisher.MqttCommand
+import actor.MqttPublisher.{MqttCommand, MqttPublishCommand}
 import actor.TenantMailActor.DeleteEmailCommand
 import actor.commands.EmailCommand
+import domain.dao._
 import domain.email.EmailService.{EmailModel, EmitSendEmailCommand, SendErrorResponse}
+import model.dao.TenantConfig
+import mqtt.CommandMessage
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
+import io.circe._
+import io.circe.parser._
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
-import domain.dao._
-import model.dao.TenantConfig
 
-class TenantProvider(supervisor: ActorRef[MqttCommand], messageStore: ActorRef[MessageStorage.Command[_]]) {
+class TenantProvider(mqttPublisher: ActorRef[MqttCommand], messageStore: ActorRef[MessageStorage.Command[_]]) {
 
   import TenantProvider._
   var logger = LoggerFactory.getLogger(classOf[TenantProvider])
@@ -33,7 +36,7 @@ class TenantProvider(supervisor: ActorRef[MqttCommand], messageStore: ActorRef[M
       Behaviors.receiveMessage {
         case TenantStart =>
           val tenants = Await.result(tenantConfigRepository.allActivated(), 3.seconds)
-          val a = tenants.map(t => (t.tenant -> context.spawn(FetchMailTenantWorker(t, supervisor, messageStore, mailRepo), s"worker-${t.tenant}"))).toMap
+          val a = tenants.map(t => (t.tenant -> context.spawn(FetchMailTenantWorker(t, mqttPublisher, messageStore, mailRepo), s"worker-${t.tenant}"))).toMap
           provide(a)
 //          tenantConfigRepository.allActivated().collect {
 //            case tenants  => {
@@ -72,9 +75,15 @@ class TenantProvider(supervisor: ActorRef[MqttCommand], messageStore: ActorRef[M
 
         case TenantAdded(tenantConfig, replyTo) =>
           replyTo ! ResponseOk
+
+          parse(s"""{"online": true}""") match {
+            case Right(json) => mqttPublisher ! MqttPublishCommand(CommandMessage(tenantConfig.tenant, "pontonOnlineState", json))
+            case Left(e) => logger.error(s"Register Tenant: ${e.message}")
+          }
+
           provide(
             tenantActors +
-              (tenantConfig.tenant -> context.spawn(FetchMailTenantWorker(tenantConfig, supervisor, messageStore, mailRepo), s"worker-${tenantConfig.tenant}")))
+              (tenantConfig.tenant -> context.spawn(FetchMailTenantWorker(tenantConfig, mqttPublisher, messageStore, mailRepo), s"worker-${tenantConfig.tenant}")))
 
       }
     }

@@ -10,7 +10,7 @@ import java.util.Date
 
 case class ResponseData(MeteringPoint: Option[String],
                         ResponseCode: Seq[BigInt],
-                        ConsentEnd: Option[Date] = None)
+                        ConsentEnd: Option[Long] = None)
 
 case class Timeline(from: Date, to: Date)
 
@@ -37,6 +37,7 @@ case class EbMsMessage(
                         meterList: Option[Seq[Meter]] = None,
                         errorMessage: Option[String] = None,
                         consentEnd: Option[Date] = None,
+                        reason: Option[String] = None,
                       )
 
 object JsonImplicit {

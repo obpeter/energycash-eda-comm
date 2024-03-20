@@ -26,6 +26,8 @@ object EbMsMessageType extends Enumeration {
   val EDA_MSG_AUFHEBUNG_CCMI: EbMsMessageType.Value = Value("AUFHEBUNG_CCMI")
   val EDA_MSG_AUFHEBUNG_CCMC: EbMsMessageType.Value = Value("AUFHEBUNG_CCMC")
   val EDA_MSG_AUFHEBUNG_CCMS: EbMsMessageType.Value = Value("AUFHEBUNG_CCMS")
+  val EDA_MSG_ABLEHNUNG_CCMS: EbMsMessageType.Value = Value("ABLEHNUNG_CCMS")
+  val EDA_MSG_ANTWORT_CCMS: EbMsMessageType.Value = Value("ANTWORT_CCMS")
 
   val ZP_LIST: EbMsMessageType.Value = Value("ANFORDERUNG_ECP")
   val ZP_LIST_RESPONSE: EbMsMessageType.Value = Value("SENDEN_ECP")

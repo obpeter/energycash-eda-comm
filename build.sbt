@@ -1,7 +1,7 @@
 import com.typesafe.sbt.packager.docker.*
 import scalapb.GeneratorOption.*
 
-ThisBuild / version := "v0.1.0"
+ThisBuild / version := "v0.1.2"
 
 ThisBuild / scalaVersion := "2.13.9"
 
@@ -14,7 +14,7 @@ lazy val alpakkaVersion  = "4.0.0"
 lazy val circeVersion    = "0.14.3"
 lazy val slickVersion = "3.4.1"
 
-val appVersion      = "0.0.1"
+val appVersion      = "0.1.2"
 
 lazy val root = (project in file("."))
   .enablePlugins(ScalaxbPlugin)
