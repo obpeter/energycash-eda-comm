@@ -1,7 +1,7 @@
 package at.energydash
 package domain.eda.messages
 
-import domain.eda.message.CMRequestRegistrationOnlineMessage
+import domain.eda.message.CMRequestRegistrationOnlineMessageV0100
 import model.enums.{EbMsMessageType, MeterDirectionType}
 import model.{EbMsMessage, Meter}
 
@@ -24,7 +24,7 @@ class CRRequestRegistrationOnlineMessageSpec extends AnyWordSpecLike with Matche
         sender = "RC100130", receiver = "AT003000", messageCode = EbMsMessageType.ONLINE_REG_INIT,
         meter = Some(Meter("AT0030000000000000000000000655856", Some(MeterDirectionType.CONSUMPTION))), ecId = Some("AT00300000000RC100181000000956509"))
 
-      val node = CMRequestRegistrationOnlineMessage(testMessage).toXML
+      val node = CMRequestRegistrationOnlineMessageV0100(testMessage).toXML
 
       (node \ "MarketParticipantDirectory" \ "MessageCode").text shouldBe EbMsMessageType.ONLINE_REG_INIT.toString
       (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000655856"

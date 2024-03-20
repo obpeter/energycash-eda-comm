@@ -11,7 +11,7 @@ import java.util.{Calendar, Date}
 import scala.util.{Failure, Success, Try}
 import scala.xml.{Elem, Node}
 
-case class CMRequestRegistrationOnlineMessage(message: EbMsMessage) extends EdaMessage[CMRequest] {
+case class CMRequestRegistrationOnlineMessageV0100(message: EbMsMessage) extends EdaMessage[CMRequest] {
   override def rootNodeLabel: Option[String] = Some("CMRequest")
 
   override def schemaLocation: Option[String] =
@@ -83,12 +83,12 @@ case class CMRequestRegistrationOnlineMessage(message: EbMsMessage) extends EdaM
   //  }
 }
 
-object CMRequestRegistrationOnlineMessage extends EdaResponseType {
-  def fromXML(xmlFile: Elem): Try[CMRequestRegistrationOnlineMessage] = {
+object CMRequestRegistrationOnlineMessageV0100 extends EdaResponseType {
+  def fromXML(xmlFile: Elem): Try[CMRequestRegistrationOnlineMessageV0100] = {
     resolveMessageCode(xmlFile) match {
       case Success(mc) => mc match {
         case EbMsMessageType.ONLINE_REG_COMPLETION => Try(scalaxb.fromXML[ECMPList](xmlFile)).map(document =>
-          CMRequestRegistrationOnlineMessage(
+          CMRequestRegistrationOnlineMessageV0100(
             EbMsMessage(
               Some(document.ProcessDirectory.MessageId),
               document.ProcessDirectory.ConversationId,
@@ -113,7 +113,7 @@ object CMRequestRegistrationOnlineMessage extends EdaResponseType {
           )
         )
         case _ => Try(scalaxb.fromXML[CMNotification](xmlFile)).map(document =>
-          CMRequestRegistrationOnlineMessage(
+          CMRequestRegistrationOnlineMessageV0100(
             EbMsMessage(
               messageId=Some(document.ProcessDirectory.MessageId),
               conversationId=document.ProcessDirectory.ConversationId,
@@ -127,7 +127,7 @@ object CMRequestRegistrationOnlineMessage extends EdaResponseType {
         )
       }
       case Failure(exception) =>
-        Try(CMRequestRegistrationOnlineMessage(
+        Try(CMRequestRegistrationOnlineMessageV0100(
           EbMsMessage(
             messageCode = EbMsMessageType.ERROR_MESSAGE,
             conversationId = "1",

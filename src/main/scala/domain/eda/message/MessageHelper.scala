@@ -22,18 +22,18 @@ object MessageHelper {
    */
   def getEdaMessageByType(message: EbMsMessage): EdaMessage[_] = {
     message.messageCode match {
-      case ONLINE_REG_INIT => CMRequestRegistrationOnlineMessage(message)
+      case ONLINE_REG_INIT => CMRequestRegistrationOnlineMessageV0100(message)
       case ZP_LIST => CPRequestZPListMessage(message)
       case EEG_BASE_DATA => CPRequestBaseDataMessage(message)
       case ENERGY_SYNC_REQ => CPRequestMeteringValueMessage(message)
-      case EDA_MSG_AUFHEBUNG_CCMS => CMRevokeRequest(message)
+      case EDA_MSG_AUFHEBUNG_CCMS => CMRevokeRequestV0100(message)
     }
   }
 
   def getEdaMessageFromXml(messageCode: EbMsMessageType): EdaResponseType = {
     messageCode match {
-      case ENERGY_FILE_RESPONSE => ConsumptionRecordMessage
-      case ONLINE_REG_ANSWER | ONLINE_REG_INIT => CMRequestRegistrationOnlineMessage
+      case ENERGY_FILE_RESPONSE => ConsumptionRecordMessageV0130
+      case ONLINE_REG_ANSWER | ONLINE_REG_INIT => CMRequestRegistrationOnlineMessageV0100
     }
   }
 
@@ -48,15 +48,15 @@ object MessageHelper {
       case PROCESS_ENERGY_RESPONSE => {
         version match {
           case "03.03" => Some(ConsumptionRecordMessageV0303)
-          case _ => Some(ConsumptionRecordMessage)
+          case _ => Some(ConsumptionRecordMessageV0130)
         }
       }
       case PROCESS_ENERGY_RESPONSE_V0303 => Some(ConsumptionRecordMessageV0303)
-      case PROCESS_REGISTER_ONLINE => Some(CMRequestRegistrationOnlineMessage)
+      case PROCESS_REGISTER_ONLINE => Some(CMRequestRegistrationOnlineMessageV0100)
       case PROCESS_LIST_METERINGPOINTS => Some(CPRequestZPListMessage)
       case PROCESS_METERINGPOINTS_VALUE => Some(CPRequestMeteringValueMessage)
-      case PROCESS_REVOKE_VALUE | PROCESS_REVOKE_CUS => Some(CMRevokeMessage)
-      case PROCESS_REVOKE_SP => Some(CMRevokeRequest)
+      case PROCESS_REVOKE_VALUE | PROCESS_REVOKE_CUS => Some(CMRevokeMessageV0100)
+      case PROCESS_REVOKE_SP => Some(CMRevokeRequestV0100)
       case _ =>
         logger.warn(s"Wrong ProcessCode: ${processCode}")
         None

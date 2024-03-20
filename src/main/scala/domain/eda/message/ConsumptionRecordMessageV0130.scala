@@ -6,14 +6,14 @@ import model._
 
 import akka.util.ByteString
 import scalaxb.Helper
-import xmlprotocol.{CMRequest, ConsumptionRecord, ConsumptionRecord2, ConsumptionRecordVersion, DATEN_CRMSG, DocumentModeType, MarketParticipantDirectoryType2, Number01Value2, Number01u4630, PRODValue, ProcessDirectoryType2, RoutingAddress, RoutingHeader}
+import xmlprotocol.{CMRequest, ConsumptionRecord, ConsumptionRecord2, ConsumptionRecordVersionType, DATEN_CRMSG, DocumentModeType, MarketParticipantDirectoryType2, MarketParticipantDirectoryType3, MarketParticipantDirectoryType7, Number01Value2, Number01Value4, Number01u4630, PRODValue, ProcessDirectoryType2, ProcessDirectoryType3, ProcessDirectoryType7, RoutingAddress, RoutingHeader}
 
 import java.io.StringWriter
 import java.util.{Calendar, Date}
 import scala.util.Try
 import scala.xml.{Elem, Node, XML}
 
-case class ConsumptionRecordMessage (message: EbMsMessage) extends EdaMessage[CMRequest] {
+case class ConsumptionRecordMessageV0130(message: EbMsMessage) extends EdaMessage[CMRequest] {
   override def toXML: Node = {
     import scalaxb.XMLStandardTypes._
 
@@ -26,23 +26,23 @@ case class ConsumptionRecordMessage (message: EbMsMessage) extends EdaMessage[CM
     val processCalendar = new GregorianCalendar(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
     processCalendar.add(Calendar.DAY_OF_MONTH, 3)
 
-    val doc = ConsumptionRecord(
-      MarketParticipantDirectoryType2(
+    val doc = ConsumptionRecord2(
+      MarketParticipantDirectoryType3(
         RoutingHeader(
           RoutingAddress(message.sender),
           RoutingAddress(message.receiver),
           Helper.toCalendar(calendar)
         ),
-        Number01Value2,
+        Number01Value4,
         DATEN_CRMSG,
         Map(
           ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](PRODValue)),
           ("@Duplicate", scalaxb.DataRecord(false)),
-          ("@SchemaVersion", scalaxb.DataRecord[ConsumptionRecordVersion](Number01u4630)),
+          ("@SchemaVersion", scalaxb.DataRecord[ConsumptionRecordVersionType](Number01u4630)),
         )
 
       ),
-      ProcessDirectoryType2(
+      ProcessDirectoryType3(
         message.messageId.get,
         message.conversationId,
         Helper.toCalendar(calendar),
@@ -50,7 +50,7 @@ case class ConsumptionRecordMessage (message: EbMsMessage) extends EdaMessage[CM
       )
     )
 
-    scalaxb.toXML[ConsumptionRecord](doc, Some("http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p30"), Some("ConsumptionRecord"),
+    scalaxb.toXML[ConsumptionRecord2](doc, Some("http://www.ebutilities.at/schemata/customerprocesses/consumptionrecord/01p30"), Some("ConsumptionRecord"),
       scalaxb.toScope(None -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20"), true).head
   }
 
@@ -65,10 +65,10 @@ case class ConsumptionRecordMessage (message: EbMsMessage) extends EdaMessage[CM
   }
 }
 
-object ConsumptionRecordMessage extends EdaResponseType {
-  def fromXML(xmlFile: Elem): Try[ConsumptionRecordMessage] = {
-    Try(scalaxb.fromXML[ConsumptionRecord](xmlFile)).map(document =>
-      ConsumptionRecordMessage(
+object ConsumptionRecordMessageV0130 extends EdaResponseType {
+  def fromXML(xmlFile: Elem): Try[ConsumptionRecordMessageV0130] = {
+    Try(scalaxb.fromXML[ConsumptionRecord2](xmlFile)).map(document =>
+      ConsumptionRecordMessageV0130(
         EbMsMessage(
           messageId = Some(document.ProcessDirectory.MessageId),
           conversationId = document.ProcessDirectory.ConversationId,
@@ -101,9 +101,9 @@ object ConsumptionRecordMessage extends EdaResponseType {
 }
 
 object ConsumptionRecordMessageV0303 extends EdaResponseType {
-  def fromXML(xmlFile: Elem): Try[ConsumptionRecordMessage] = {
-    Try(scalaxb.fromXML[ConsumptionRecord2](xmlFile)).map(document =>
-      ConsumptionRecordMessage(
+  def fromXML(xmlFile: Elem): Try[ConsumptionRecordMessageV0130] = {
+    Try(scalaxb.fromXML[ConsumptionRecord](xmlFile)).map(document =>
+      ConsumptionRecordMessageV0130(
         EbMsMessage(
           messageId = Some(document.ProcessDirectory.MessageId),
           conversationId = document.ProcessDirectory.ConversationId,
