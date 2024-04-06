@@ -2,7 +2,7 @@ package at.energydash
 package domain.email
 
 import domain.dao.{Db, SlickEmailOutboxRepository}
-import domain.eda.message.CPRequestZPListMessage
+import domain.eda.message.CPRequestZPList
 import domain.email.Fetcher.{ErrorMessage, FetcherContext, MailMessage, ErrorParseMessage}
 import model.EbMsMessage
 import model.dao.TenantConfig
@@ -48,7 +48,7 @@ class FetcherSpec extends AnyWordSpecLike with Matchers {
       val fetcher: Fetcher = Fetcher()
       fetcher.fetch("[", {
         case msg: MailMessage =>
-          msg.content shouldBe a[CPRequestZPListMessage]
+          msg.content shouldBe a[CPRequestZPList]
           msg.messageId shouldBe "123456"
           msg.protocol shouldBe "EC_PODLIST"
           msg.content.message shouldBe a[EbMsMessage]

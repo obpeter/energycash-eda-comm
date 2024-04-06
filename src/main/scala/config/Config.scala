@@ -37,4 +37,6 @@ object Config {
   lazy val errorTopic = config.getString("epmsmail.mqtt.topics.errorTopic")
 
   def getDomain(domain: String):Map[String, Object] = config.getConfig(s"epmsmail.mail.${domain}.javaxmail").entrySet().asScala.map(e => e.getKey -> e.getValue.unwrapped()).toMap
+
+  def interfaceMode = config.getString("app.interface.mode")
 }

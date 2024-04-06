@@ -9,6 +9,7 @@ import domain.eda.message.MessageHelper
 import domain.eda.message.MessageHelper.EDAMessageCodeToProcessCode
 import domain.email.EmailService
 import model.EbMsMessage
+import model.enums.EbMsProcessType
 import mqtt.path.MqttPaths
 
 import akka.actor.typed.{ActorRef, ActorSystem}
@@ -24,11 +25,12 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.util.Try
 
 class MqttRequestStream(mailService: ActorRef[EmailCommand],
-                             messageTransformer: ActorRef[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]],
-                             messageStore: ActorRef[MessageStorage.Command[MessageStorage.AddMessageResult]])
-                            (implicit system: ActorSystem[_]) extends MqttPaths {
+                        messageTransformer: ActorRef[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]],
+                        messageStore: ActorRef[MessageStorage.Command[MessageStorage.AddMessageResult]])
+                       (implicit system: ActorSystem[_]) extends MqttPaths {
 
   import model.JsonImplicit._
 
@@ -53,28 +55,50 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
 
   private val storeMessageFlow: Flow[EbMsMessage, MqttMessage, NotUsed] =
     ActorFlow.ask(messageStore)(MessageStorage.AddMessage).collect {
-      case MessageStorage.Added(id) =>
-        MqttMessage(
-          edaReqResPath(id.sender, EDAMessageCodeToProcessCode(id.messageCode).toString),
-          ByteString(id.asJson.toString()))
-          .withQos(MqttQoS.atMostOnce).withRetained(false)
+      case MessageStorage.Added(id) => Try {
+        edaReqResPath(id.sender, EDAMessageCodeToProcessCode(id.messageCode).toString)
+      } fold(
+        exc => throw exc,
+        topic => {
+          MqttMessage(
+            topic,
+            ByteString(id.asJson.toString()))
+            .withQos(MqttQoS.atMostOnce).withRetained(false)
+        })
     }
+
+  private def buildHeader(data: EbMsMessage) = {
+
+    val msgCode = EDAMessageCodeToProcessCode(data.messageCode)
+    val msgCodeVersion: Option[String] = msgCode match {
+      case EbMsProcessType.PROCESS_EC_PRTFACT_CHANGE => Some("_01.00")
+      case _ => data.messageCodeVersion.map("_"+_)
+    }
+    s"[${msgCode}${msgCodeVersion match {
+    case Some(v) => v
+    case None => ""}} MessageId=${data.messageId.getOrElse("")}]"
+  }
 
   private val prepareEmailMessageFlow: Flow[EbMsMessage, EmailService.EmailModel, NotUsed] =
     Flow.fromFunction(data => {
-      val attachment = MessageHelper.getEdaMessageByType(data).toByte
-      val subject = s"[${EDAMessageCodeToProcessCode(data.messageCode).toString} MessageId=${data.messageId.getOrElse("")}]"
-      val to = data.receiver.toUpperCase()
-      val tenant = data.sender.toUpperCase()
+      MessageHelper.getEdaMessageByType(data).toByte.fold(
+        e => throw e,
+        attachment => {
+//          val subject = s"[${EDAMessageCodeToProcessCode(data.messageCode).toString}${if(data.messageCodeVersion.isDefined) "_"+data.messageCodeVersion else ""} MessageId=${data.messageId.getOrElse("")}]"
+          val subject = buildHeader(data)
+          val to = data.receiver.toUpperCase()
+          val tenant = data.sender.toUpperCase()
 
-      logger.debug(s"Prepare Email Message Flow: $data")
-      EmailService.EmailModel(tenant = tenant, toEmail = to,
-        subject = subject, attachment = attachment, data = data)
+          logger.debug(s"Prepare Email Message Flow: $data")
+          EmailService.EmailModel(tenant = tenant, toEmail = to,
+            subject = subject, attachment = attachment, data = data)
+        }
+      )
     })
 
-  def run( source: Source[MqttMessage, Future[Done]],
-           responseSink: Sink[MqttMessage, _],
-           errorSink: Sink[MqttMessage, _],
+  def run(source: Source[MqttMessage, Future[Done]],
+          responseSink: Sink[MqttMessage, _],
+          errorSink: Sink[MqttMessage, _],
          ): Future[Done] = {
 
     implicit val timeout: Timeout = Timeout(15.seconds)
@@ -97,15 +121,18 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
         ActorFlow.ask(parallelism = 1)(mailService)((msg: EmailService.EmailModel, replyTo: ActorRef[EmailCommand]) =>
           DistributeMail(msg.tenant, msg, replyTo)).collect {
           case EmailService.SendEmailResponse(msg) => Right(msg)
-          case err : EmailService.SendErrorResponse =>
+          case err: EmailService.SendErrorResponse =>
             logger.error(s"Receive Errormessage sending Mail $err")
             Left(err)
         }
       )
+      .recover {
+        case e => Left(EmailService.SendErrorResponse("TE000000", e.getMessage))
+      }
       .flatMapConcat {
         case Left(error) ⇒ Source
           .single(error)
-          .via(Flow.fromFunction( err =>
+          .via(Flow.fromFunction(err =>
             MqttMessage(
               edaReqResPath(err.tenant, "error"),
               ByteString(err.asJson.toString().strip())).withQos(MqttQoS.AtLeastOnce).withRetained(false)
@@ -113,6 +140,11 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
         case Right(msg) => Source
           .single(msg)
           .via(storeMessageFlow)
+      }
+      .recover {
+        case e =>
+          println(s"Recover: ${e.getMessage}")
+          MqttMessage("eda/response/error", ByteString(e.getMessage))
       }
       .to(responseSink)
       .run()
@@ -124,7 +156,7 @@ object MqttRequestStream {
   def apply(mailService: ActorRef[EmailCommand],
             messageTransformer: ActorRef[PrepareMessageActor.Command[PrepareMessageActor.PrepareMessageResult]],
             messageStore: ActorRef[MessageStorage.Command[MessageStorage.AddMessageResult]])
-           (implicit system: ActorSystem[_]):MqttRequestStream = {
+           (implicit system: ActorSystem[_]): MqttRequestStream = {
     new MqttRequestStream(mailService, messageTransformer, messageStore)
   }
 }

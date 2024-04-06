@@ -128,7 +128,7 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
       val storeMsg = messageStoreProbe.expectMessageType[MessageStorage.FindById] //(MessageStorage.FindById("RC100130202301231674475740000000030", _))
       storeMsg.replyTo ! MessageStorage.MessageFound(StoredConversation("RC100001202307250000000000000000009",
-        Some(EbMsMessage(None, "RC100001202307250000000000000000009", "sender", "receiver", ENERGY_SYNC_RES, None, Some(Meter("meterid123456", None))))))
+        Some(EbMsMessage(None, "RC100001202307250000000000000000009", "sender", "receiver", ENERGY_SYNC_RES, messageCodeVersion=Some("01.00"), None, Some(Meter("meterid123456", None))))))
 
       val mqttMsg = replyActor.expectMessageType[MqttPublish]
 
@@ -173,7 +173,7 @@ class FetchMailActorSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
 
       val storeMsg = messageStoreProbe.expectMessageType[MessageStorage.FindById] //(MessageStorage.FindById("RC100130202301231674475740000000030", _))
       storeMsg.replyTo ! MessageStorage.MessageFound(StoredConversation("RC100001202307250000000000000000009",
-        Some(EbMsMessage(None, "RC100001202307250000000000000000009", "sender", "receiver", ONLINE_REG_APPROVAL, None, Some(Meter("meterid123456", None))))))
+        Some(EbMsMessage(None, "RC100001202307250000000000000000009", "sender", "receiver", ONLINE_REG_APPROVAL, messageCodeVersion=Some("01.00"), None, Some(Meter("meterid123456", None))))))
 
       val mqttMsg = replyActor.expectMessageType[MqttPublish]
       println(mqttMsg)

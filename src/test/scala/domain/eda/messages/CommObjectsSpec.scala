@@ -1,7 +1,7 @@
 package at.energydash
 package domain.eda.messages
 
-import domain.eda.message.{CPRequestMeteringValueMessage, CPRequestZPListMessage}
+import domain.eda.message.{CPRequestMeteringValue, CPRequestMeteringValueXMLMessage, CPRequestZPList}
 import model.EbMsMessage
 
 import io.circe.generic.auto._
@@ -21,6 +21,7 @@ class CommObjectsSpec extends AnyFlatSpec {
     val jsonObject =
       """{
         |"messageCode":"ANFORDERUNG_ECP",
+        |"messageCodeVersion": "01.00",
         |"messageId":"rctest202210161905235386216409991",
         |"conversationId":"ectest202210161905235380027488852",
         |"sender":"rctest",
@@ -32,7 +33,7 @@ class CommObjectsSpec extends AnyFlatSpec {
     val message = decode[EbMsMessage](jsonObject)
 
     val node = message match {
-      case Right(m) => CPRequestZPListMessage(m).toXML
+      case Right(m) => CPRequestZPList(m).getVersion().toXML
     }
 
     (node \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT00300000000RC100130000000952832"
@@ -45,6 +46,7 @@ class CommObjectsSpec extends AnyFlatSpec {
         |"sender" : "RC100130",
         |"receiver" : "AT003000",
         |"messageCode" : "ANFORDERUNG_PT",
+        |"messageCodeVersion": "01.00",
         |"requestId" : "A6ETEPER",
         |"meter" : {
         |  "meteringPoint" : "AT0030000000000000000000000670809",
@@ -63,10 +65,10 @@ class CommObjectsSpec extends AnyFlatSpec {
     val message = decode[EbMsMessage](jsonObject)
 
     val node = message match {
-      case Right(m) => CPRequestMeteringValueMessage(m)
+      case Right(m) => CPRequestMeteringValue(m).getVersion()
     }
 
-    node shouldBe a [CPRequestMeteringValueMessage]
+    node shouldBe a [CPRequestMeteringValueXMLMessage]
     (node.toXML \ "ProcessDirectory" \ "MeteringPoint").text shouldBe "AT0030000000000000000000000670809"
   }
 

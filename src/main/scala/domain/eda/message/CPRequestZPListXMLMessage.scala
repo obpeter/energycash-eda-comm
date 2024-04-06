@@ -1,23 +1,28 @@
 package at.energydash
 package domain.eda.message
 
+import config.Config
 import model.enums.{EbMsMessageType, MeterDirectionType}
 import model.{EbMsMessage, Meter}
 
 import scalaxb.Helper
-import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECMPList, ECNumber, MarketParticipantDirectoryType10, Number01Value2, Number01u4612Value, PRODValue, ProcessDirectoryType10, RoutingAddress, RoutingHeader, SchemaVersionType8}
+import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECMPList, ECNumber, MarketParticipantDirectoryType4, Number01Value4, Number01u4612, PRODValue, ProcessDirectoryType4, RoutingAddress, RoutingHeader, SIMUValue, SchemaVersionType4}
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, TimeZone}
 import scala.util.Try
 import scala.xml.{Elem, NamespaceBinding, Node, TopScope}
 
-case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPRequest] {
+case class CPRequestZPList(message: EbMsMessage) extends EdaMessage {
+  override def getVersion(version: Option[String] = None): EdaXMLMessage[_] = CPRequestZPListXMLMessage(message)
+}
+
+case class CPRequestZPListXMLMessage(message: EbMsMessage) extends EdaXMLMessage[CPRequest] {
 
   override def rootNodeLabel: Some[String] = Some("CPRequest")
 
   override def schemaLocation: Option[String] = Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12 " +
-    "http://www.ebutilities.at/schemata/customerprocesses/EC_PODLIST/01.00/ANFORDERUNG_ECP")
+    "http://www.ebutilities.at/schemata/customerprocesses/EC_PODLIST/01.10/ANFORDERUNG_ECP")
 
   def toXML: Node = {
     import scalaxb.XMLStandardTypes._
@@ -35,21 +40,24 @@ case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPReq
     val dateFmt = new SimpleDateFormat("yyyy-MM-dd")
 
     val doc = CPRequest(
-      MarketParticipantDirectoryType10(
+      MarketParticipantDirectoryType4(
         RoutingHeader(
           RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
           RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
           Helper.toCalendar(calendar)
         ),
-        Number01Value2,
+        Number01Value4,
         message.messageCode.toString,
         Map(
-          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](PRODValue)),
+          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](Config.interfaceMode match {
+            case "SIMU" => SIMUValue
+            case _ => PRODValue
+          })),
           ("@Duplicate", scalaxb.DataRecord(false)),
-          ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType8](Number01u4612Value)),
+          ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType4](Number01u4612)),
         )
       ),
-      ProcessDirectoryType10(
+      ProcessDirectoryType4(
         message.messageId.get,
         message.conversationId,
         Helper.toCalendar(dateFmt.format(processCalendar.getTime)),
@@ -101,23 +109,18 @@ case class CPRequestZPListMessage(message: EbMsMessage) extends EdaMessage[CPReq
   }
 }
 
-object CPRequestZPListMessage extends EdaResponseType {
-  def fromXML(xmlFile: Elem): Try[CPRequestZPListMessage] = {
+object CPRequestZPListXMLMessage extends EdaResponseType {
+  def fromXML(xmlFile: Elem): Try[CPRequestZPList] = {
     Try(scalaxb.fromXML[ECMPList](xmlFile)).map(document =>
-      CPRequestZPListMessage(
+      CPRequestZPList(
         EbMsMessage(
-          Some(document.ProcessDirectory.MessageId),
-          document.ProcessDirectory.ConversationId,
-          document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-          document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-          EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          Some(document.ProcessDirectory.MPListData
+          messageId = Some(document.ProcessDirectory.MessageId),
+          conversationId = document.ProcessDirectory.ConversationId,
+          sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
+          receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
+          messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
+          messageCodeVersion = Some("04.10"),
+          meterList = Some(document.ProcessDirectory.MPListData
             .map(mp =>
               Meter(
                 mp.MeteringPoint,

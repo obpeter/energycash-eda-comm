@@ -42,7 +42,7 @@ class EmailServiceSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
       val tenant = "myeeg"
       val mailer = ConfiguredMailer.createMailerFromSession(mockedSession)
       val mailModel = EmailModel(tenant, "mom", "miss you", ByteString("".getBytes),
-        EbMsMessage(None, "conversationId", "sender", "receiver"))
+        EbMsMessage(None, "conversationId", "sender", "receiver", messageCodeVersion=Some("01.00")))
       val messageStore = createTestProbe[MessageStorage.Command[_]]()
       val replyProbe = createTestProbe[EmailCommand]()
 
@@ -51,7 +51,7 @@ class EmailServiceSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
       val emailService = spawn(TenantMailActor(tenantConfig, messageStore.ref, emailRepo))
       emailService ! mailCommand
 
-      replyProbe.expectMessage(SendEmailResponse(EbMsMessage(None, "conversationId", "sender", "receiver")))
+      replyProbe.expectMessage(SendEmailResponse(EbMsMessage(None, "conversationId", "sender", "receiver", messageCodeVersion=Some("01.00"))))
 
       val momsInbox = Mailbox.get("mom@email.com")
       momsInbox should have size 1

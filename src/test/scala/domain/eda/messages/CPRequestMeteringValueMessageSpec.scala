@@ -1,7 +1,7 @@
 package at.energydash
 package domain.eda.messages
 
-import domain.eda.message.CPRequestMeteringValueMessage
+import domain.eda.message.CPRequestMeteringValueXMLMessage
 import model.EbMsMessage
 
 import io.circe.generic.auto._
@@ -45,7 +45,7 @@ class CPRequestMeteringValueMessageSpec extends AnyWordSpecLike with Matchers {
       val message = decode[EbMsMessage](jsonObjectStr)
 
       val node = message match {
-        case Right(m) => CPRequestMeteringValueMessage(m).toXML
+        case Right(m) => CPRequestMeteringValueXMLMessage(m).toXML
       }
 
       (node \ "ProcessDirectory" \ "Extension" \ "DateTimeFrom").text should fullyMatch regex """[12][0-9]{3}-[01][0-9]-[0-3][0-9]T[012][0-9]:[0-5][0-9]:00[\+]0[12]:00"""

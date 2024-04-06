@@ -4,6 +4,8 @@ package model
 import model.JsonImplicit._
 import model.enums.EbMsMessageType
 import model.enums.EbMsMessageType.EbMsMessageType
+import model.enums.EcDisModelEnum.EcDisModelEnum
+import model.enums.EcTypeEnum.EcTypeEnum
 import model.enums.MeterDirectionType.MeterDirectionType
 
 import java.util.Date
@@ -14,9 +16,9 @@ case class ResponseData(MeteringPoint: Option[String],
 
 case class Timeline(from: Date, to: Date)
 
-case class Meter(meteringPoint: String, direction: Option[MeterDirectionType])
+case class Meter(meteringPoint: String, direction: Option[MeterDirectionType], activation: Option[Date] = None, partFact: Option[BigDecimal] = None)
 
-case class EnergyValue(from: Date, to: Option[Date], method: Option[String], value: BigDecimal)
+case class EnergyValue(from: Date, to: Option[Date]=None, method: Option[String]=None, value: BigDecimal)
 
 case class EnergyData(meterCode: String, value: Seq[EnergyValue])
 
@@ -28,9 +30,12 @@ case class EbMsMessage(
                         sender: String,
                         receiver: String,
                         messageCode: EbMsMessageType = EbMsMessageType.ENERGY_FILE_RESPONSE,
+                        messageCodeVersion: Option[String] = None,
                         requestId: Option[String] = None,
                         meter: Option[Meter] = None,
                         ecId: Option[String] = None, // Community ID
+                        ecType: Option[EcTypeEnum] = None,
+                        ecDisModel: Option[EcDisModelEnum] = None,
                         responseData: Option[Seq[ResponseData]] = None,
                         energy: Option[Energy] = None,
                         timeline: Option[Timeline] = None,

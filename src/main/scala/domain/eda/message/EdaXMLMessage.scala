@@ -14,7 +14,13 @@ import scala.util.Try
 import scala.xml.transform.RewriteRule
 import scala.xml._
 
-trait EdaMessage[EDAType] {
+trait EdaMessage {
+  val message: EbMsMessage
+  def getVersion(version: Option[String]): EdaXMLMessage[_]
+}
+
+
+trait EdaXMLMessage[EDAType] {
 
   val message: EbMsMessage
   def rootNodeLabel: Option[String] = None
@@ -25,7 +31,7 @@ trait EdaMessage[EDAType] {
   val dateFmt = new SimpleDateFormat("yyyy-MM-dd")
 
   def toXML: Node
-  def toByte: ByteString = {
+  def toByte: Try[ByteString] = Try{
     val xml = if (rootNodeLabel.isDefined && schemaLocation.isDefined) {
       rewriteRootSchema(toXML, rootNodeLabel.get, schemaLocation.get)
     } else {
@@ -50,7 +56,7 @@ trait EdaMessage[EDAType] {
 }
 
 trait EdaResponseType {
-  def fromXML(xmlFile: Elem): Try[EdaMessage[_]]
+  def fromXML(xmlFile: Elem): Try[EdaMessage]
 
   def resolveMessageCode(xmlFile: Elem): Try[EbMsMessageType] = {
       Try(EbMsMessageType.withName(xmlFile \\ "MessageCode" text))

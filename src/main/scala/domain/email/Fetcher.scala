@@ -3,7 +3,7 @@ package domain.email
 
 import config.Config
 import domain.dao.SlickEmailOutboxRepository
-import domain.eda.message.{EdaErrorMessage, EdaMessage, MessageHelper}
+import domain.eda.message.{EdaErrorMessage, EdaErrorXMLMessage, EdaMessage, MessageHelper}
 import model.EbMsMessage
 import model.dao.EmailOutbox
 import model.enums.{EbMsMessageType, EbMsProcessType}
@@ -144,17 +144,28 @@ class Fetcher {
         case Some(("ERROR", "", "")) =>
           (m, Some(ErrorMessage(m.getHeader("Message-ID").toList.head, "ERROR",
             withAttachement(m).take(1).map(body => scala.xml.XML.load(body.getInputStream)) match {
-              case List(x) => EdaErrorMessage.fromXML(x) match {
+              case List(x) => EdaErrorXMLMessage.fromXML(x) match {
                 case Success(e) => e
-                case Failure(exception) => EdaErrorMessage(EbMsMessage(messageCode = EbMsMessageType.ERROR_MESSAGE, conversationId = "1", messageId = None,
+                case Failure(exception) => EdaErrorMessage(
+                  EbMsMessage(messageCode = EbMsMessageType.ERROR_MESSAGE,
+                    messageCodeVersion=Some("01.00"),
+                    conversationId = "1", messageId = None,
                   sender = "", receiver = "", errorMessage = Some(exception.getMessage)))
               }
-              case _ => EdaErrorMessage.fromXML(<EDASendError>
+              case _ => EdaErrorXMLMessage.fromXML(<EDASendError>
                 <ReasonText>No Attachement</ReasonText>
               </EDASendError>) match {
                 case Success(e) => e
-                case Failure(exception) => EdaErrorMessage(EbMsMessage(messageCode = EbMsMessageType.ERROR_MESSAGE, conversationId = "1", messageId = None,
-                  sender = "", receiver = "", errorMessage = Some(exception.getMessage)))
+                case Failure(exception) => EdaErrorMessage(
+                  EbMsMessage(
+                    messageCode = EbMsMessageType.ERROR_MESSAGE,
+                    messageCodeVersion=Some("01.00"),
+                    conversationId = "1",
+                    messageId = None,
+                    sender = "",
+                    receiver = "",
+                    errorMessage = Some(exception.getMessage)
+                  ))
               }
             })))
         case Some((protocol, version, messageId)) =>
@@ -177,13 +188,21 @@ class Fetcher {
               }).getOrElse((m, None))
             case _ => (m, Some(ErrorMessage(
               m.getHeader("Message-ID").toList.head,
-              "ERROR", EdaErrorMessage.fromXML(
+              "ERROR", EdaErrorXMLMessage.fromXML(
                 <EDASendError>
                   <ReasonText>No Attachement</ReasonText>
                 </EDASendError>) match {
                 case Success(e) => e
-                case Failure(exception) => EdaErrorMessage(EbMsMessage(messageCode = EbMsMessageType.ERROR_MESSAGE, conversationId = "1", messageId = None,
-                  sender = "", receiver = "", errorMessage = Some(exception.getMessage)))
+                case Failure(exception) => EdaErrorMessage(
+                  EbMsMessage(
+                    messageCode = EbMsMessageType.ERROR_MESSAGE,
+                    messageCodeVersion=Some("01.00"),
+                    conversationId = "1",
+                    messageId = None,
+                    sender = "",
+                    receiver = "",
+                    errorMessage = Some(exception.getMessage)
+                  ))
               })))
           }
         case _ => (m, None)
@@ -326,9 +345,9 @@ object Fetcher {
 
   trait MailContent
 
-  case class MailMessage(id: String, from: String, protocol: String, messageId: String, content: EdaMessage[_]) extends MailContent
+  case class MailMessage(id: String, from: String, protocol: String, messageId: String, content: EdaMessage) extends MailContent
 
-  case class ErrorMessage(id: String, protocol: String, content: EdaMessage[_]) extends MailContent
+  case class ErrorMessage(id: String, protocol: String, content: EdaMessage) extends MailContent
   case class ErrorParseMessage(message: String) extends MailContent
 
   case class FetcherContext(tenant: String, session: Session, mailRepo: SlickEmailOutboxRepository)

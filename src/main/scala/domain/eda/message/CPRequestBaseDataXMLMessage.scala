@@ -3,10 +3,11 @@ package domain.eda.message
 
 import model.EbMsMessage
 import model.enums.EbMsMessageType
+import config.Config
 
 import akka.util.ByteString
 import scalaxb.Helper
-import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECNumber, MarketParticipantDirectoryType10, Number01Value2, Number01u4612Value, PRODValue, ProcessDirectoryType10, RoutingAddress, RoutingHeader, SchemaVersionType8}
+import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECNumber, MarketParticipantDirectoryType4, Number01Value4, Number01u4612, PRODValue, ProcessDirectoryType4, RoutingAddress, RoutingHeader, SIMUValue, SchemaVersionType4}
 
 import java.io.StringWriter
 import java.text.SimpleDateFormat
@@ -14,7 +15,11 @@ import java.util.{Calendar, Date}
 import scala.util.Try
 import scala.xml.{Elem, Node, XML}
 
-case class CPRequestBaseDataMessage(message: EbMsMessage) extends EdaMessage[CPRequest] {
+case class CPRequestBaseData(message: EbMsMessage) extends EdaMessage {
+  override def getVersion(version: Option[String] = None): EdaXMLMessage[_] = CPRequestBaseDataXMLMessage(message)
+}
+
+case class CPRequestBaseDataXMLMessage(message: EbMsMessage) extends EdaXMLMessage[CPRequest] {
 
   def toXML: Node = {
     import scalaxb.XMLStandardTypes._
@@ -29,21 +34,24 @@ case class CPRequestBaseDataMessage(message: EbMsMessage) extends EdaMessage[CPR
     val dateFmt = new SimpleDateFormat("yyyy-MM-dd")
 
     val doc = CPRequest(
-      MarketParticipantDirectoryType10(
+      MarketParticipantDirectoryType4(
         RoutingHeader(
           RoutingAddress(message.sender, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
           RoutingAddress(message.receiver, Map(("@AddressType", scalaxb.DataRecord[AddressType](ECNumber)))),
           Helper.toCalendar(calendar)
         ),
-        Number01Value2,
+        Number01Value4,
         message.messageCode.toString,
         Map(
-          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](PRODValue)),
+          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](Config.interfaceMode match {
+            case "SIMU" => SIMUValue
+            case _ => PRODValue
+          })),
           ("@Duplicate", scalaxb.DataRecord(false)),
-          ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType8](Number01u4612Value)),
+          ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType4](Number01u4612)),
         )
       ),
-      ProcessDirectoryType10(
+      ProcessDirectoryType4(
         message.messageId.get,
         message.conversationId,
         Helper.toCalendar(dateFmt.format(processCalendar.getTime)),
@@ -63,7 +71,7 @@ case class CPRequestBaseDataMessage(message: EbMsMessage) extends EdaMessage[CPR
 
   }
 
-  override def toByte: ByteString = {
+  override def toByte: Try[ByteString] = Try {
     val xml = toXML
 
     val xmlString = new StringWriter()
@@ -73,23 +81,17 @@ case class CPRequestBaseDataMessage(message: EbMsMessage) extends EdaMessage[CPR
   }
 }
 
-object CPRequestBaseDataMessage extends EdaResponseType {
-  def fromXML(xmlFile: Elem): Try[CPRequestBaseDataMessage] = {
+object CPRequestBaseDataXMLMessage extends EdaResponseType {
+  def fromXML(xmlFile: Elem): Try[CPRequestBaseData] = {
     Try(scalaxb.fromXML[CPRequest](xmlFile)).map(document =>
-      CPRequestBaseDataMessage(
+      CPRequestBaseData(
         EbMsMessage(
-          Some(document.ProcessDirectory.MessageId),
-          document.ProcessDirectory.ConversationId,
-          document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-          document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-          EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
+          messageId = Some(document.ProcessDirectory.MessageId),
+          conversationId = document.ProcessDirectory.ConversationId,
+          sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
+          receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
+          messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
+          messageCodeVersion = Some("01.00"),
         )
       )
     )

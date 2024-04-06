@@ -10,8 +10,8 @@ import courier.{Envelope, Mailer, Multipart}
 
 import javax.mail.Session
 import javax.mail.internet.{InternetAddress, MimeBodyPart}
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 case class InlineAttachment(contentId: String, filename: String, mimeType: String, content: ByteString)
@@ -58,6 +58,10 @@ class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_])
       .subject(email.subject)
       .content(mailContent)
 
-    mailer(if (email.cc.isDefined) envelope.cc(new InternetAddress(email.cc.get)) else envelope)(ec)
+    mailer(email.cc match {
+      case Some(cc) if isValidEmail(cc) => envelope.cc(new InternetAddress(cc))
+      case _ => envelope
+    })(ec)
+//    mailer(if (email.cc.isDefined) envelope.cc(new InternetAddress(email.cc.get)) else envelope)(ec)
   }
 }

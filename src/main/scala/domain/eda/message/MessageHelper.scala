@@ -2,16 +2,16 @@ package at.energydash
 package domain.eda.message
 
 import model.EbMsMessage
-import model.enums.EbMsMessageType.{EDA_MSG_AUFHEBUNG_CCMC, EDA_MSG_AUFHEBUNG_CCMI, EDA_MSG_AUFHEBUNG_CCMS, EEG_BASE_DATA, ENERGY_FILE_RESPONSE, ENERGY_SYNC_REQ, EbMsMessageType, ONLINE_REG_ANSWER, ONLINE_REG_INIT, ZP_LIST}
-import model.enums.EbMsProcessType.{EbMsProcessType, PROCESS_ENERGY_RESPONSE, PROCESS_ENERGY_RESPONSE_V0303, PROCESS_LIST_METERINGPOINTS, PROCESS_METERINGPOINTS_VALUE, PROCESS_REGISTER_ONLINE, PROCESS_REVOKE_CUS, PROCESS_REVOKE_VALUE, PROCESS_REVOKE_SP}
+import model.enums.EbMsMessageType._
+import model.enums.EbMsProcessType._
+import utils.zip.CRC8
 
 import com.google.common.io.BaseEncoding
 import org.slf4j.LoggerFactory
 
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.zip.CRC32
-import utils.zip.CRC8
+import java.util.{Calendar, Date, GregorianCalendar}
 
 object MessageHelper {
 
@@ -20,20 +20,14 @@ object MessageHelper {
   /**
    * Extract Message Type for Sending to Marktteilnehmer.
    */
-  def getEdaMessageByType(message: EbMsMessage): EdaMessage[_] = {
+  def getEdaMessageByType(message: EbMsMessage): EdaXMLMessage[_] = {
     message.messageCode match {
-      case ONLINE_REG_INIT => CMRequestRegistrationOnlineMessageV0100(message)
-      case ZP_LIST => CPRequestZPListMessage(message)
-      case EEG_BASE_DATA => CPRequestBaseDataMessage(message)
-      case ENERGY_SYNC_REQ => CPRequestMeteringValueMessage(message)
-      case EDA_MSG_AUFHEBUNG_CCMS => CMRevokeRequestV0100(message)
-    }
-  }
-
-  def getEdaMessageFromXml(messageCode: EbMsMessageType): EdaResponseType = {
-    messageCode match {
-      case ENERGY_FILE_RESPONSE => ConsumptionRecordMessageV0130
-      case ONLINE_REG_ANSWER | ONLINE_REG_INIT => CMRequestRegistrationOnlineMessageV0100
+      case ONLINE_REG_INIT => CMRequestRegistrationOnline(message).getVersion()
+      case ZP_LIST => CPRequestZPList(message).getVersion()
+      case EEG_BASE_DATA => CPRequestBaseData(message).getVersion()
+      case ENERGY_SYNC_REQ => CPRequestMeteringValue(message).getVersion()
+      case EDA_MSG_AUFHEBUNG_CCMS => CMRevokeRequest(message).getVersion()
+      case CHANGE_METER_PARTITION => ECPartitionChangeMessage(message).getVersion()
     }
   }
 
@@ -48,15 +42,25 @@ object MessageHelper {
       case PROCESS_ENERGY_RESPONSE => {
         version match {
           case "03.03" => Some(ConsumptionRecordMessageV0303)
+          case "03.10" => Some(ConsumptionRecordMessageV0410)
           case _ => Some(ConsumptionRecordMessageV0130)
         }
       }
-      case PROCESS_ENERGY_RESPONSE_V0303 => Some(ConsumptionRecordMessageV0303)
-      case PROCESS_REGISTER_ONLINE => Some(CMRequestRegistrationOnlineMessageV0100)
-      case PROCESS_LIST_METERINGPOINTS => Some(CPRequestZPListMessage)
-      case PROCESS_METERINGPOINTS_VALUE => Some(CPRequestMeteringValueMessage)
-      case PROCESS_REVOKE_VALUE | PROCESS_REVOKE_CUS => Some(CMRevokeMessageV0100)
+      case PROCESS_REGISTER_ONLINE =>
+        version match {
+          case "02.00" => Some(CMRequestRegistrationOnlineXMLMessageV0200)
+          case _ => Some(CMRequestRegistrationOnlineXMLMessageV0110)
+        }
+      case PROCESS_LIST_METERINGPOINTS => Some(CPRequestZPListXMLMessage)
+      case PROCESS_METERINGPOINTS_VALUE => Some(CPRequestMeteringValueXMLMessage)
+      case PROCESS_REVOKE_VALUE | PROCESS_REVOKE_CUS => Some(CMRevokeXMLMessageV0100)
       case PROCESS_REVOKE_SP => Some(CMRevokeRequestV0100)
+      case PROCESS_EC_PRTFACT_CHANGE => {
+        version match {
+          case "01.10" => Some(ECPartitionChangeXMLMessage)
+          case _ => Some(EdaWrongVersionXMLMessage)
+        }
+      }
       case _ =>
         logger.warn(s"Wrong ProcessCode: ${processCode}")
         None
@@ -71,6 +75,8 @@ object MessageHelper {
       case ENERGY_SYNC_REQ => PROCESS_METERINGPOINTS_VALUE
       case EDA_MSG_AUFHEBUNG_CCMC | EDA_MSG_AUFHEBUNG_CCMI => PROCESS_REVOKE_VALUE
       case EDA_MSG_AUFHEBUNG_CCMS => PROCESS_REVOKE_SP
+      case CHANGE_METER_PARTITION => PROCESS_EC_PRTFACT_CHANGE
+      case _ => throw new RuntimeException("Not able to find Message -> Process mapping")
     }
   }
 
@@ -104,4 +110,16 @@ object MessageHelper {
   }
 
   def formatSeqNumber(seqNumber: Long) = f"${seqNumber}%010d"
+
+  def buildCalendar(date: Date): GregorianCalendar = {
+    val calendar: GregorianCalendar = new GregorianCalendar
+    calendar.setTime(date)
+    calendar.set(Calendar.MILLISECOND, 0)
+    calendar
+  }
+
+  def buildCalendarDate(date: Date): String = {
+    val format = new SimpleDateFormat("yyyy-MM-dd")
+    format.format(date)
+  }
 }

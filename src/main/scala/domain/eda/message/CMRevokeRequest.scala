@@ -3,15 +3,19 @@ package domain.eda.message
 
 import model.enums.EbMsMessageType
 import model.{EbMsMessage, ResponseData}
+import config.Config
 
 import scalaxb.Helper
-import xmlprotocol.{AUFHEBUNG_CCMS, AddressType, CMNotification, CMRevoke, DocumentModeType, ECNumber, MarketParticipantDirectoryType6, Number01Value4, Number01u4600Value3, PRODValue, ProcessDirectoryType6, RoutingAddress, RoutingHeader, SchemaVersionType5}
+import xmlprotocol.{AUFHEBUNG_CCMS, AddressType, CMNotification, CMRevoke, DocumentModeType2, ECNumber, MarketParticipantDirectoryType6, Number01Value4, Number01u4600Value4, PRODValue2, ProcessDirectoryType6, RoutingAddress, RoutingHeader, SIMUValue2, SchemaVersionType6}
 
 import java.util.{Calendar, Date}
 import scala.util.Try
 import scala.xml.{Elem, Node}
+case class CMRevokeRequest(message: EbMsMessage) extends EdaMessage {
+  override def getVersion(version: Option[String] = None): EdaXMLMessage[_] = CMRevokeRequestV0100(message)
+}
 
-case class CMRevokeRequestV0100(message: EbMsMessage) extends EdaMessage[CMRevoke] {
+case class CMRevokeRequestV0100(message: EbMsMessage) extends EdaXMLMessage[CMRevoke] {
   override def rootNodeLabel: Some[String] = Some("CMRevoke")
 
   override def schemaLocation: Option[String] =
@@ -37,9 +41,12 @@ case class CMRevokeRequestV0100(message: EbMsMessage) extends EdaMessage[CMRevok
         Number01Value4,
         AUFHEBUNG_CCMS,
         Map(
-          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](PRODValue)),
+          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType2](Config.interfaceMode match {
+            case "SIMU" => SIMUValue2
+            case _ => PRODValue2
+          })),
           ("@Duplicate", scalaxb.DataRecord(false)),
-          ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType5](Number01u4600Value3)),
+          ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType6](Number01u4600Value4)),
         )
       ),
       ProcessDirectoryType6(
@@ -63,15 +70,16 @@ case class CMRevokeRequestV0100(message: EbMsMessage) extends EdaMessage[CMRevok
 }
 
 object CMRevokeRequestV0100 extends EdaResponseType {
-  override def fromXML(xmlFile: Elem): Try[CMRevokeRequestV0100] = {
+  override def fromXML(xmlFile: Elem): Try[CMRevokeRequest] = {
     Try(scalaxb.fromXML[CMNotification](xmlFile)).map(document => {
-      CMRevokeRequestV0100(
+      CMRevokeRequest(
         EbMsMessage(
           messageId = Some(document.ProcessDirectory.MessageId),
           conversationId = document.ProcessDirectory.ConversationId,
           sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
           receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
           messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
+          messageCodeVersion = Some("01.11"),
           responseData = Some(document.ProcessDirectory.ResponseData.map(r => ResponseData(r.MeteringPoint, r.ResponseCode)))
         )
       )

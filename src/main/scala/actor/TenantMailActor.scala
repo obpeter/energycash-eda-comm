@@ -62,26 +62,6 @@ class TenantMailActor(tenantConfig: TenantConfig, messageStore: ActorRef[Message
       Behaviors.receiveMessage {
         case req: FetchEmailCommand =>
           req.fetchEmail(req.subject, distributeMail(req))
-//          req.fetchEmail(req.subject) match {
-//            case Success(msgs) => {
-//                Future.sequence(msgs.map {
-//                  case m: MailMessage =>
-//                    for {
-//                      sm <- messageStore.ask(ref => MessageStorage.FindById(m.content.message.conversationId, ref)).map {
-//                        case MessageStorage.MessageNotFound(_) => m.content
-//                        case MessageStorage.MessageFound(storedMessage) => mergeEbmsMessage(storedMessage.message, m.content)
-//                      }
-//                    } yield EdaNotification(m.protocol, sm)
-//                  case m: ErrorMessage => Future(EdaNotification("ERROR",m.content))
-//                }).onComplete {
-//                  case Success(n: List[EdaNotification]) => req.replyTo ! MqttPublish(n)
-//                  case Failure(e) => req.replyTo ! MqttPublishError(req.tenant, s"$e - ${e.getMessage}")
-//                }
-//            }
-//            case Failure(ex) =>
-//              context.log.error(ex.getMessage)
-//              req.replyTo ! MqttPublishError(req.tenant, ex.getMessage)
-//          }
           Behaviors.same
         case req: SendEmailCommand =>
           context.log.info(s"Send Mail to ${req.email.toEmail}")

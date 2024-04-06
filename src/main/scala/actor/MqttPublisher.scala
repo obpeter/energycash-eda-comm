@@ -19,7 +19,7 @@ object MqttPublisher extends StrictLogging{
   import model.JsonImplicit._
 
   trait MqttCommand
-  case class EdaNotification(protocol: String, message: EdaMessage[_])
+  case class EdaNotification(protocol: String, message: EdaMessage)
   case class MqttPublish(mails: List[EdaNotification]/*, mailProvider: ActorRef[EmailCommand]*/) extends MqttCommand
   case class MqttPublishCommand(command: CommandMessage) extends MqttCommand
   case class MqttPublishError(tenant: String, message: String) extends MqttCommand
@@ -29,12 +29,12 @@ object MqttPublisher extends StrictLogging{
     Behaviors.setup { implicit ctx =>
       val mqttMessage = (topic: String, msg: ByteString) => MqttMessage(topic, msg) //.withQos(MqttQoS.AtLeastOnce).withRetained(true)
 
-      def convertCPRequestMessageToJson(x: EdaMessage[_]): MqttMessage = x match {
-        case x: CPRequestZPListMessage => MqttMessage(s"${Config.cpTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))
-        case x: CPRequestMeteringValueMessage => MqttMessage(s"${Config.cpTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))
-        case x: CMRequestRegistrationOnlineMessageV0100 => MqttMessage(s"${Config.cmTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))
+      def convertCPRequestMessageToJson(x: EdaXMLMessage[_]): MqttMessage = x match {
+        case x: CPRequestZPListXMLMessage => MqttMessage(s"${Config.cpTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))
+        case x: CPRequestMeteringValueXMLMessage => MqttMessage(s"${Config.cpTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))
+        case x: CMRequestRegistrationOnlineXMLMessageV0110 => MqttMessage(s"${Config.cmTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))
         case x: ConsumptionRecordMessageV0130 => mqttMessage(s"${Config.energyTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))
-        case x: EdaErrorMessage => MqttMessage(s"${Config.errorTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))
+        case x: EdaErrorXMLMessage => MqttMessage(s"${Config.errorTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))
         case _ =>
           logger.info("Not able to handle Message")
           MqttMessage(s"${Config.errorTopic}/${x.message.receiver.toLowerCase}", ByteString(x.message.asJson.deepDropNullValues.noSpaces))

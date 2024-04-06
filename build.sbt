@@ -14,7 +14,7 @@ lazy val alpakkaVersion  = "4.0.0"
 lazy val circeVersion    = "0.14.3"
 lazy val slickVersion = "3.4.1"
 
-val appVersion      = "0.1.2"
+val appVersion      = "0.2.1"
 
 lazy val root = (project in file("."))
   .enablePlugins(ScalaxbPlugin)
