@@ -20,8 +20,8 @@ case class CMRevokeXMLMessageV0100(message: EbMsMessage) extends EdaXMLMessage[C
   override def rootNodeLabel: Some[String] = Some("CMRevoke")
 
   override def schemaLocation: Option[String] =
-    Some("http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p00 http://www.ebutilities.at/schemata/customerprocesses/CM_REV_IMP/01.00/AUFHEBUNG_CCMI")
-
+    Some("http://www.ebutilities.at/schemata/customerconsent/cmrevoke/01p00 " +
+      "http://www.ebutilities.at/schemata/customerprocesses/CM_REV_IMP/01.00/AUFHEBUNG_CCMI")
 
   def toXML: Node = {
     import scalaxb.XMLStandardTypes._

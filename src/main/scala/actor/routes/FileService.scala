@@ -1,22 +1,26 @@
 package at.energydash
-package services
+package actor.routes
 
-import actor.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish}
+import actor.MqttPublisher.{MqttCommand, MqttPublish}
 import domain.eda.message.{EdaErrorMessage, MessageHelper}
 import model.EbMsMessage
 import model.enums.{EbMsMessageType, EbMsProcessType}
+import actor.MessageStorage
+import actor.MqttPublisher.EdaNotification
 
 import akka.Done
+import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.http.scaladsl.model.Multipart.BodyPart
 import akka.http.scaladsl.model.{BodyPartEntity, Multipart}
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
-import akka.util.ByteString
+import akka.util.{ByteString, Timeout}
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 
 
@@ -24,7 +28,7 @@ trait FileService {
   implicit val system: ActorSystem[_]
   implicit val mat: Materializer
 
-  def handleUpload(formData: Multipart.FormData): Future[Done]
+  def handleUpload(formData: Multipart.FormData, messageStore: ActorRef[MessageStorage.Command[_]]): Future[Done]
 }
 
 object FileService {
@@ -35,6 +39,8 @@ object FileService {
 class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCommand])(implicit val mat: Materializer) extends FileService with StrictLogging {
 
   import system._
+  implicit val timeout: Timeout = Timeout(5.seconds)
+  implicit val sched = system.scheduler
 
   implicit def bp2sting(implicit ev: Unmarshaller[String, String]): Unmarshaller[BodyPartEntity, String] = Unmarshaller.withMaterializer { implicit executionContext =>
     implicit mat =>
@@ -76,22 +82,46 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
     }
   }
 
-  def handleUpload(formData: Multipart.FormData): Future[Done] = {
+  def handleUpload(formData: Multipart.FormData, messageStore: ActorRef[MessageStorage.Command[_]]): Future[Done] = {
     formData.parts
       .map(part => FileInfo(part))
-      .mapAsync(1)(info => bodyPart2Xml(info.bodyPart).map(xml => {
-        val Some((processName, version)) = parseProcessName(info.processName)
-        MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(processName), version) match {
-          case Some(t) => t.fromXML(xml) match {
-            case Success(p) => EdaNotification(processName, p)
-            case Failure(exception) => EdaNotification("error", edaErrorMessage(exception.toString))
+      //      .mapAsync(1)(info => bodyPart2Xml(info.bodyPart).map(xml => {
+      //        val Some((processName, version)) = parseProcessName(info.processName)
+      //        MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(processName), version) match {
+      //          case Some(t) => t.fromXML(xml) match {
+      //            case Success(p) => EdaNotification(processName, p)
+      //            case Failure(exception) => EdaNotification("error", edaErrorMessage(exception.toString))
+      //          }
+      //          case None => EdaNotification("error", edaErrorMessage("Unknown process type"))
+      //        }
+      //      }
+      //      ))
+      .map(info => Tuple2(info, parseProcessName(info.processName)))
+      .mapAsync(1) {
+        case (info, Some(process)) => bodyPart2Xml(info.bodyPart).map(xml => {
+          MessageHelper.getEdaMessageFromHeader(EbMsProcessType.withName(process._1), process._2) match {
+            case Some(t) => t.fromXML(xml) match {
+              case Success(p) => (process._1, p)
+              case Failure(exception) => ("error", edaErrorMessage(exception.toString))
+            }
+            case None => ("error", edaErrorMessage("Unknown process type"))
           }
-          case None => EdaNotification("error", edaErrorMessage("Unknown process type"))
         }
+        )
       }
-      ))
-      .map(p => mqttPublisher ! MqttPublish(List(p)))
+      .mapAsync(1) {
+        case ("error", m) => Future(("error", m))
+        case (processName, message) =>
+            messageStore.ask(ref => MessageStorage.MergeMessage(message, ref)).collect {
+              case MessageStorage.MergedMessage(m) => (processName, m)
+            }
+      }
+      .map {
+        case (processName, message) =>
+          EdaNotification(processName, message) :: Nil
+      }
+      .map(p => mqttPublisher ! MqttPublish(p))
       .runWith(Sink.ignore)
-  }
+    }
 }
 

@@ -6,7 +6,7 @@ import model.{EbMsMessage, ResponseData}
 import config.Config
 
 import scalaxb.Helper
-import xmlprotocol.{AddressType, CPNotification, CPRequest, DocumentModeType2, ECNumber, MarketParticipantDirectoryType4, Number01Value4, Number01u4612, PRODValue2, ProcessDirectoryType4, RoutingAddress, RoutingHeader, SIMUValue2, SchemaVersionType4}
+import xmlprotocol.{AddressType, CPNotification, CPRequest, DocumentModeType, ECNumber, MarketParticipantDirectoryType4, Number01Value4, Number01u4612, PRODValue, ProcessDirectoryType4, RoutingAddress, RoutingHeader, SIMUValue, SchemaVersionType4}
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, TimeZone}
@@ -48,9 +48,9 @@ case class CPRequestMeteringValueXMLMessage(message: EbMsMessage) extends EdaXML
         Number01Value4,
         message.messageCode.toString,
         Map(
-          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType2](Config.interfaceMode match {
-            case "SIMU" => SIMUValue2
-            case _ => PRODValue2
+          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](Config.interfaceMode match {
+            case "SIMU" => SIMUValue
+            case _ => PRODValue
           })),
           ("@Duplicate", scalaxb.DataRecord(false)),
           ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType4](Number01u4612)),
@@ -66,16 +66,9 @@ case class CPRequestMeteringValueXMLMessage(message: EbMsMessage) extends EdaXML
           val from = new GregorianCalendar(tz);from.setTime(t.from);from.set(Calendar.MILLISECOND, 0)
           val to = new GregorianCalendar(tz);to.setTime(t.to);to.set(Calendar.MILLISECOND, 0)
           xmlprotocol.Extension(
-            None,
-            None,
-            None,
-            None,
-            None,
             DateTimeFrom = Some(Helper.toCalendar(from)),
             DateTimeTo = Some(Helper.toCalendar(to)),
-            None,
-            None,
-            false)
+            AssumptionOfCosts = false)
         }),
 
       )

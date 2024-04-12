@@ -1,11 +1,7 @@
 package at.energydash
-package services
+package actor.routes
 
-import akka.http.scaladsl.model.{FormData, HttpHeader, Multipart}
-import akka.stream.scaladsl.StreamConverters
-import akka.util.ByteString
-
-import java.io.InputStream
+import akka.http.scaladsl.model.Multipart
 
 case class FileInfo(bodyPart: Multipart.BodyPart, processName: String) {
 }

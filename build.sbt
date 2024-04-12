@@ -1,9 +1,11 @@
 import com.typesafe.sbt.packager.docker.*
 import scalapb.GeneratorOption.*
 
-ThisBuild / version := "v0.1.2"
+ThisBuild / version := "v0.2.1"
 
 ThisBuild / scalaVersion := "2.13.9"
+
+val appVersion      = "0.2.1"
 
 lazy val emilVersion     = "0.12.0"
 lazy val akkaHttpVersion = "10.2.6"
@@ -13,8 +15,6 @@ lazy val courierVersion  = "3.0.1"
 lazy val alpakkaVersion  = "4.0.0"
 lazy val circeVersion    = "0.14.3"
 lazy val slickVersion = "3.4.1"
-
-val appVersion      = "0.2.1"
 
 lazy val root = (project in file("."))
   .enablePlugins(ScalaxbPlugin)
@@ -39,6 +39,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "com.github.daddykotex" %% "courier" % courierVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+      "de.heikoseeberger" %% "akka-http-circe" % "1.37.0",
 //      "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,

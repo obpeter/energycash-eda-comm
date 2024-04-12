@@ -1,7 +1,6 @@
 package at.energydash
 package actor
 
-import actor.commands.EmailCommand
 import admin.RegisterPontonServiceHandler
 import admin.mail.SendMailServiceHandler
 import config.Config

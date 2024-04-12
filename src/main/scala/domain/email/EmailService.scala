@@ -2,7 +2,7 @@ package at.energydash.domain.email
 
 import akka.actor.typed.ActorRef
 import akka.util.ByteString
-import at.energydash.actor.commands.EmailCommand
+import at.energydash.actor.EmailCommand
 import at.energydash.model.EbMsMessage
 import courier._
 

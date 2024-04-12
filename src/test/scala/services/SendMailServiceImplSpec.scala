@@ -2,9 +2,8 @@ package at.energydash
 package services
 
 import admin.mail.{Attachement, SendMailWithInlineAttachmentsRequest}
-import domain.dao.{Db, SlickEmailOutboxRepository}
+import domain.dao.{Db, SlickEmailOutboxRepository, TenantConfig}
 import domain.email.MockedSMTPProvider
-import model.dao.TenantConfig
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.jvnet.mock_javamail.Mailbox

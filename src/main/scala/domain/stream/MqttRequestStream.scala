@@ -2,8 +2,7 @@ package at.energydash
 package domain.stream
 
 import actor.TenantProvider.DistributeMail
-import actor.commands.EmailCommand
-import actor.{MessageStorage, PrepareMessageActor}
+import actor.{EmailCommand, MessageStorage, PrepareMessageActor}
 import config.Config
 import domain.eda.message.MessageHelper
 import domain.eda.message.MessageHelper.EDAMessageCodeToProcessCode
@@ -72,7 +71,8 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
     val msgCode = EDAMessageCodeToProcessCode(data.messageCode)
     val msgCodeVersion: Option[String] = msgCode match {
       case EbMsProcessType.PROCESS_EC_PRTFACT_CHANGE => Some("_01.00")
-      case _ => data.messageCodeVersion.map("_"+_)
+      case _ if data.messageCodeVersion.isDefined => data.messageCodeVersion.map("_"+_)
+      case _ => None
     }
     s"[${msgCode}${msgCodeVersion match {
     case Some(v) => v
@@ -127,7 +127,10 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
         }
       )
       .recover {
-        case e => Left(EmailService.SendErrorResponse("TE000000", e.getMessage))
+        case e => {
+          logger.error(s"Error in Request Stream: ${e.getMessage}")
+          Left(EmailService.SendErrorResponse("TE000000", e.getMessage))
+        }
       }
       .flatMapConcat {
         case Left(error) ⇒ Source

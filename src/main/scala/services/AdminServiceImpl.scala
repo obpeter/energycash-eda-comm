@@ -2,18 +2,16 @@ package at.energydash
 package services
 
 import admin.{RegisterPontonRequest, RegisterPontonService, RegisteredPontonReply}
-
-import akka.actor.typed.{ActorRef, Scheduler}
-
-import scala.concurrent.{ExecutionContext, Future}
-import actor.commands.EmailCommand
+import actor.EmailCommand
+import domain.dao.TenantConfig
 
 import akka.actor.typed.scaladsl.AskPattern.Askable
+import akka.actor.typed.{ActorRef, Scheduler}
 import akka.util.Timeout
 
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
-import model.dao.TenantConfig
 
 class AdminServiceImpl(actorRef: ActorRef[EmailCommand])(implicit val sch: Scheduler, ec: ExecutionContext) extends RegisterPontonService {
 

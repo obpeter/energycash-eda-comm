@@ -20,6 +20,10 @@ case class CPRequestBaseData(message: EbMsMessage) extends EdaMessage {
 }
 
 case class CPRequestBaseDataXMLMessage(message: EbMsMessage) extends EdaXMLMessage[CPRequest] {
+  override def rootNodeLabel: Some[String] = Some("CPRequest")
+
+  override def schemaLocation: Option[String] = Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12 " +
+    "http://www.ebutilities.at/schemata/customerprocesses/MD_REQ_GN/03.12/ANFORDERUNG_GN")
 
   def toXML: Node = {
     import scalaxb.XMLStandardTypes._

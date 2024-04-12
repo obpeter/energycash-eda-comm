@@ -1,8 +1,7 @@
 package at.energydash
 
 import actor.SupervisorActor
-import actor.commands._
-
+import actor.Start
 import akka.actor.typed.ActorSystem
 
 object EdaMailConnector extends App {

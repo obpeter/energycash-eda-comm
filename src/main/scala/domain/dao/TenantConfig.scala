@@ -1,5 +1,5 @@
 package at.energydash
-package model.dao
+package domain.dao
 
 case class TenantConfig(tenant: String, domain: String, host: String, imapPort: Int, smtpHost: String, smtpPort: Int, user: String, passwd: String, imapSecurity: String, smtpSecurity: String, active: Boolean) {
   import java.lang.Boolean._

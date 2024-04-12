@@ -1,8 +1,7 @@
 package at.energydash
 package domain.email
 
-import actor.commands.EmailCommand
-import actor.{MessageStorage, TenantMailActor}
+import actor.{MessageStorage, TenantMailActor, EmailCommand}
 import domain.email.EmailService.{EmailModel, SendEmailCommand, SendEmailResponse}
 import model.EbMsMessage
 
@@ -16,8 +15,7 @@ import java.util.Properties
 import javax.mail.Provider
 import javax.mail.internet.{InternetAddress, MimeMultipart}
 import scala.language.postfixOps
-import model.dao.TenantConfig
-import domain.dao.{SlickEmailOutboxRepository, Db}
+import domain.dao.{Db, SlickEmailOutboxRepository, TenantConfig}
 
 class MockedSMTPProvider
   extends Provider(Provider.Type.TRANSPORT, "mocked", classOf[MockTransport].getName, "Mock", null)

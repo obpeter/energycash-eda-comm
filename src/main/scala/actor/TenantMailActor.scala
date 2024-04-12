@@ -2,13 +2,11 @@ package at.energydash
 package actor
 
 import actor.MqttPublisher.{EdaNotification, MqttCommand, MqttPublish, MqttPublishError}
-import actor.commands.EmailCommand
-import domain.dao.SlickEmailOutboxRepository
+import domain.dao.{SlickEmailOutboxRepository, TenantConfig}
 import domain.eda.message.EdaErrorMessage
 import domain.email.EmailService.{SendEmailCommand, SendEmailResponse, SendErrorResponse}
 import domain.email.Fetcher.{ErrorMessage, FetcherContext, MailContent, MailMessage}
 import domain.email.{ConfiguredMailer, Fetcher}
-import model.dao.TenantConfig
 
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.Behaviors

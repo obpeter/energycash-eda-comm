@@ -3,8 +3,7 @@ package domain.stream
 
 import actor.PrepareMessageActor.{PrepareMessage, Prepared}
 import actor.TenantProvider.DistributeMail
-import actor.commands.EmailCommand
-import actor.{MessageStorage, PrepareMessageActor}
+import actor.{EmailCommand, MessageStorage, PrepareMessageActor}
 import domain.email.EmailService
 import model.EbMsMessage
 

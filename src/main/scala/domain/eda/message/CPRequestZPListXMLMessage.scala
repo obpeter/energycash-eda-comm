@@ -6,7 +6,7 @@ import model.enums.{EbMsMessageType, MeterDirectionType}
 import model.{EbMsMessage, Meter}
 
 import scalaxb.Helper
-import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECMPList, ECNumber, MarketParticipantDirectoryType4, Number01Value4, Number01u4612, PRODValue, ProcessDirectoryType4, RoutingAddress, RoutingHeader, SIMUValue, SchemaVersionType4}
+import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECMPList2, ECNumber, MarketParticipantDirectoryType4, Number01Value4, Number01u4612, PRODValue, ProcessDirectoryType4, RoutingAddress, RoutingHeader, SIMUValue, SchemaVersionType4}
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, TimeZone}
@@ -22,7 +22,7 @@ case class CPRequestZPListXMLMessage(message: EbMsMessage) extends EdaXMLMessage
   override def rootNodeLabel: Some[String] = Some("CPRequest")
 
   override def schemaLocation: Option[String] = Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12 " +
-    "http://www.ebutilities.at/schemata/customerprocesses/EC_PODLIST/01.10/ANFORDERUNG_ECP")
+    "http://www.ebutilities.at/schemata/customerprocesses/EC_PODLIST/02.00/ANFORDERUNG_ECP")
 
   def toXML: Node = {
     import scalaxb.XMLStandardTypes._
@@ -104,14 +104,13 @@ case class CPRequestZPListXMLMessage(message: EbMsMessage) extends EdaXMLMessage
     val nsb2 = NamespaceBinding("schemaLocation", "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12/CPRequest_01p12.xsd", TopScope)
     val nsb3 = NamespaceBinding("xsi", "http://www.w3.org/2001/XMLSchema-instance", nsb2)
     val nsb4 = NamespaceBinding("cp", "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12", TopScope)
-//    val p = PrefixedAttribute("xsi", )
     NamespaceBinding(null, "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20", nsb2)
   }
 }
 
 object CPRequestZPListXMLMessage extends EdaResponseType {
   def fromXML(xmlFile: Elem): Try[CPRequestZPList] = {
-    Try(scalaxb.fromXML[ECMPList](xmlFile)).map(document =>
+    Try(scalaxb.fromXML[ECMPList2](xmlFile)).map(document =>
       CPRequestZPList(
         EbMsMessage(
           messageId = Some(document.ProcessDirectory.MessageId),

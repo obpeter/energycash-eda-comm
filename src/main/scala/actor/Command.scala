@@ -1,5 +1,5 @@
-package at.energydash.actor
-package commands
+package at.energydash
+package actor
 
 sealed trait Command
 trait Response

@@ -77,6 +77,7 @@
     <orderEntry type="library" name="sbt: com.typesafe:config:1.4.2:jar" level="project" />
     <orderEntry type="library" name="sbt: com.typesafe:ssl-config-core_2.13:0.4.3:jar" level="project" />
     <orderEntry type="library" name="sbt: com.zaxxer:HikariCP:4.0.3:jar" level="project" />
+    <orderEntry type="library" name="sbt: de.heikoseeberger:akka-http-circe_2.13:1.37.0:jar" level="project" />
     <orderEntry type="library" name="sbt: io.circe:circe-core_2.13:0.14.3:jar" level="project" />
     <orderEntry type="library" name="sbt: io.circe:circe-generic_2.13:0.14.3:jar" level="project" />
     <orderEntry type="library" name="sbt: io.circe:circe-jawn_2.13:0.14.3:jar" level="project" />

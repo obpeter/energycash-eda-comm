@@ -3,11 +3,9 @@ package actor
 
 import actor.MqttPublisher.MqttCommand
 import actor.TenantMailActor.{DeleteEmailCommand, FetchEmailCommand}
-import actor.commands.EmailCommand
 import config.Config
-import domain.dao.SlickEmailOutboxRepository
+import domain.dao.{SlickEmailOutboxRepository, TenantConfig}
 import domain.email.EmailService.{EmitSendEmailCommand, SendEmailCommand}
-import model.dao.TenantConfig
 
 import akka.actor.typed.scaladsl.{Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}

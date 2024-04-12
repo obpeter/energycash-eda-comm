@@ -2,7 +2,6 @@ package at.energydash
 package domain.dao
 
 import slick.lifted.ProvenShape
-import model.dao.TenantConfig
 
 trait TenentConfigTable { this: Db =>
 

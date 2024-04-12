@@ -2,11 +2,10 @@ package at.energydash
 package actor
 
 import actor.TenantProvider.TenantStart
-import actor.commands._
-import actor.routes.ServiceRoute
+import actor.routes.{FileService, ServiceRoute}
 import config.Config
+import mqtt.{MqttEmail, MqttSystem}
 import domain.stream.MqttRequestStream
-import services.FileService
 
 import akka.Done
 import akka.actor.typed.scaladsl.Behaviors
@@ -22,8 +21,6 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
-import mqtt.MqttSystem
-import mqtt.MqttEmail
 
 object SupervisorActor {
   private def startHttpServer(routes: Route)(implicit system: ActorSystem[_]): Unit = {
@@ -72,7 +69,7 @@ object SupervisorActor {
                 createResponseSink(s"${Config.getMqttMailConfig.consumerId}-response-error"))
 
             val fileService = FileService(system, mqttPublisher)
-            val routes = new ServiceRoute(fileService)
+            val routes = new ServiceRoute(fileService, messageStore)
             startHttpServer(routes.adminRoutes)
             startGRPCServer(tenantProvider)
 

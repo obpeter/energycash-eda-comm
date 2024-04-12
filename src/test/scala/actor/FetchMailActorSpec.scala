@@ -4,9 +4,8 @@ package actor
 import actor.MessageStorage.StoredConversation
 import actor.MqttPublisher.{MqttCommand, MqttPublish}
 import actor.TenantMailActor.FetchEmailCommand
-import domain.dao.{Db, SlickEmailOutboxRepository}
+import domain.dao.{Db, SlickEmailOutboxRepository, TenantConfig}
 import domain.email.ConfiguredMailer
-import model.dao.TenantConfig
 import model.enums.EbMsMessageType._
 import model.{EbMsMessage, Meter}
 

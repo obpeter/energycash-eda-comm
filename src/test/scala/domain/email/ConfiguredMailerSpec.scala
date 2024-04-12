@@ -1,10 +1,10 @@
 package at.energydash
 package domain.email
 
+import domain.dao.TenantConfig
+
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-
-import model.dao.TenantConfig
 
 class ConfiguredMailerSpec extends AnyWordSpecLike with Matchers {
 

@@ -3,10 +3,8 @@ package actor
 
 import actor.MqttPublisher.{MqttCommand, MqttPublishCommand}
 import actor.TenantMailActor.DeleteEmailCommand
-import actor.commands.EmailCommand
 import domain.dao._
 import domain.email.EmailService.{EmailModel, EmitSendEmailCommand, SendErrorResponse}
-import model.dao.TenantConfig
 import mqtt.CommandMessage
 
 import akka.actor.typed.scaladsl.Behaviors

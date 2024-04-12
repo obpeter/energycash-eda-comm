@@ -91,7 +91,7 @@ case class CMRequestRegistrationOnlineXMLMessageV0200(message: EbMsMessage) exte
   override def rootNodeLabel: Option[String] = Some("CMRequest")
 
   override def schemaLocation: Option[String] =
-    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p10 http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_ONL/02.00/ANFORDERUNG_ECON")
+    Some("http://www.ebutilities.at/schemata/customerconsent/cmrequest/01p20 http://www.ebutilities.at/schemata/customerprocesses/EC_REQ_ONL/02.00/ANFORDERUNG_ECON")
 
   override def toXML: Node = {
     import scalaxb.XMLStandardTypes._

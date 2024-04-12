@@ -1,11 +1,10 @@
 package at.energydash
 package domain.email
 
-import domain.dao.{Db, SlickEmailOutboxRepository}
+import domain.dao.{Db, SlickEmailOutboxRepository, TenantConfig}
 import domain.eda.message.CPRequestZPList
-import domain.email.Fetcher.{ErrorMessage, FetcherContext, MailMessage, ErrorParseMessage}
+import domain.email.Fetcher.{ErrorMessage, ErrorParseMessage, FetcherContext, MailMessage}
 import model.EbMsMessage
-import model.dao.TenantConfig
 
 import courier.Multipart
 import org.jvnet.mock_javamail.Mailbox

@@ -3,7 +3,6 @@ package domain.dao
 
 import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
-import model.dao.EmailOutbox
 
 
 import scala.concurrent.{ExecutionContext, Future}

@@ -8,7 +8,7 @@ import model.{EbMsMessage, ResponseData}
 import scalaxb.Helper
 import xmlprotocol.{AddressType, CCValue, CONSUMPTIONValue3, CPNotification, DocumentModeType, ECMPList, ECMPList2, ECNumber, GCValue, GENERATIONValue3, MPListDataType, MPTimeDataType, MarketParticipantDirectoryType14, Number01Value4, Number01u4610Value, PRODValue, ProcessDirectoryType14, RC_LValue, RC_RValue, RoutingAddress, RoutingHeader, SIMUValue, SchemaVersionType11}
 
-import java.util.Date
+import java.util.{Calendar, Date}
 import scala.util.Try
 import scala.xml.{Elem, Node}
 
@@ -31,6 +31,8 @@ case class ECPartitionChangeXMLMessage(message: EbMsMessage) extends EdaXMLMessa
     import java.util.GregorianCalendar
 
     val now = new Date
+    val processDate = Calendar.getInstance
+    processDate.add(Calendar.DATE, 1)
 //    val calendar: GregorianCalendar = new GregorianCalendar
 //    calendar.setTime(new Date)
 //    calendar.set(Calendar.MILLISECOND, 0)
@@ -56,7 +58,7 @@ case class ECPartitionChangeXMLMessage(message: EbMsMessage) extends EdaXMLMessa
       ProcessDirectory=ProcessDirectoryType14(
         MessageId = message.messageId.get,
         ConversationId = message.conversationId,
-        ProcessDate = Helper.toCalendar(MessageHelper.buildCalendarDate(now)),
+        ProcessDate = Helper.toCalendar(MessageHelper.buildCalendarDate(processDate.getTime)),
         ECID = message.ecId.get,
         ECType = message.ecType match {
           case Some(EcTypeEnum.GEA) => GCValue

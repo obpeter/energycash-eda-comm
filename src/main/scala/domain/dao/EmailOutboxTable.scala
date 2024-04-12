@@ -6,8 +6,6 @@ import slick.sql.SqlProfile.ColumnOption.SqlType
 
 import java.sql.Timestamp
 
-import model.dao.EmailOutbox
-
 trait EmailOutboxTable { this: Db =>
 
   import config.profile.api._

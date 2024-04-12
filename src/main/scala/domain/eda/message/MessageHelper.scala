@@ -57,7 +57,7 @@ object MessageHelper {
       case PROCESS_REVOKE_SP => Some(CMRevokeRequestV0100)
       case PROCESS_EC_PRTFACT_CHANGE => {
         version match {
-          case "01.10" => Some(ECPartitionChangeXMLMessage)
+          case "01.00" => Some(ECPartitionChangeXMLMessage)
           case _ => Some(EdaWrongVersionXMLMessage)
         }
       }
