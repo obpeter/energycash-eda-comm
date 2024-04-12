@@ -1,27 +1,25 @@
 package at.energydash
 package actor
 
-import akka.actor.typed.{ActorRef, ActorSystem, Scheduler}
-import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
-import akka.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
-
-import scala.io.Source
-import admin.excel.ExcelAdminServiceHandler
 import admin.RegisterPontonServiceHandler
-import services.{AdminServiceImpl, ExcelServiceImpl}
+import admin.mail.SendMailServiceHandler
 import config.Config
 import domain.email.ConfiguredMailer
+import services.{AdminServiceImpl, SendMailServiceImpl}
 
+import akka.actor.typed.{ActorRef, ActorSystem, Scheduler}
 import akka.grpc.scaladsl.ServiceHandler
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
+import akka.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
 
-import java.security.{KeyStore, SecureRandom}
 import java.security.cert.{Certificate, CertificateFactory}
+import java.security.{KeyStore, SecureRandom}
 import javax.net.ssl.{KeyManagerFactory, SSLContext}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
+import scala.io.Source
 import scala.util.{Failure, Success}
-import commands.EmailCommand
 
 object AdminServer {
 
@@ -30,24 +28,26 @@ object AdminServer {
   def apply(mailService: ActorRef[EmailCommand], system: ActorSystem[_]) = new AdminServer(mailService, system).run
 }
 
-class AdminServer(mailService: ActorRef[EmailCommand], system: ActorSystem[_]) {
+class AdminServer(tenantProvider: ActorRef[EmailCommand], system: ActorSystem[_]) {
   def run(): Future[Http.ServerBinding] = {
     implicit val sys = system
     implicit val ec: ExecutionContext = system.executionContext
     implicit val sch: Scheduler = system.scheduler
 
+//    val mailerService: PartialFunction[HttpRequest, Future[HttpResponse]] =
+//      ExcelAdminServiceHandler.partial(new ExcelServiceImpl(AdminServer.mailSession, system))
+
     val mailerService: PartialFunction[HttpRequest, Future[HttpResponse]] =
-      ExcelAdminServiceHandler.partial(new ExcelServiceImpl(AdminServer.mailSession, system))
+      SendMailServiceHandler.partial(new SendMailServiceImpl(AdminServer.mailSession))
 
     val adminService: PartialFunction[HttpRequest, Future[HttpResponse]] = {
-      RegisterPontonServiceHandler.partial(new AdminServiceImpl(mailService))
-
+      RegisterPontonServiceHandler.partial(new AdminServiceImpl(tenantProvider))
     }
 
     val services: HttpRequest => Future[HttpResponse] = ServiceHandler.concatOrNotFound(mailerService, adminService)
 
     val bound: Future[Http.ServerBinding] = Http(system)
-      .newServerAt(interface = "0.0.0.0", port = 9092)
+      .newServerAt(interface = "0.0.0.0", port = 9093)
 //      .enableHttps(serverHttpContext)
       .bind(services)
       .map(_.addToCoordinatedShutdown(hardTerminationDeadline = 20.seconds))

@@ -1,10 +1,7 @@
 package at.energydash
 package domain.email
 
-import actor.commands.EmailCommand
-import actor.{MessageStorage, TenantMailActor}
-import domain.dao.model.TenantConfig
-import domain.dao.spec.{Db, SlickEmailOutboxRepository}
+import actor.{MessageStorage, TenantMailActor, EmailCommand}
 import domain.email.EmailService.{EmailModel, SendEmailCommand, SendEmailResponse}
 import model.EbMsMessage
 
@@ -18,6 +15,7 @@ import java.util.Properties
 import javax.mail.Provider
 import javax.mail.internet.{InternetAddress, MimeMultipart}
 import scala.language.postfixOps
+import domain.dao.{Db, SlickEmailOutboxRepository, TenantConfig}
 
 class MockedSMTPProvider
   extends Provider(Provider.Type.TRANSPORT, "mocked", classOf[MockTransport].getName, "Mock", null)
@@ -42,7 +40,7 @@ class EmailServiceSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
       val tenant = "myeeg"
       val mailer = ConfiguredMailer.createMailerFromSession(mockedSession)
       val mailModel = EmailModel(tenant, "mom", "miss you", ByteString("".getBytes),
-        EbMsMessage(None, "conversationId", "sender", "receiver"))
+        EbMsMessage(None, "conversationId", "sender", "receiver", messageCodeVersion=Some("01.00")))
       val messageStore = createTestProbe[MessageStorage.Command[_]]()
       val replyProbe = createTestProbe[EmailCommand]()
 
@@ -51,7 +49,7 @@ class EmailServiceSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike wi
       val emailService = spawn(TenantMailActor(tenantConfig, messageStore.ref, emailRepo))
       emailService ! mailCommand
 
-      replyProbe.expectMessage(SendEmailResponse(EbMsMessage(None, "conversationId", "sender", "receiver")))
+      replyProbe.expectMessage(SendEmailResponse(EbMsMessage(None, "conversationId", "sender", "receiver", messageCodeVersion=Some("01.00"))))
 
       val momsInbox = Mailbox.get("mom@email.com")
       momsInbox should have size 1

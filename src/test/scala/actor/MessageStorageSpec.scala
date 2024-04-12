@@ -1,10 +1,11 @@
 package at.energydash
 package actor
 
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import actor.MessageStorage.MessageFound
 import model.EbMsMessage
 import model.enums.EbMsMessageType
+
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -21,14 +22,7 @@ class MessageStorageSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
         "AT3241234124312432143",
         "AT100130",
         "RC003000",
-        EbMsMessageType.ENERGY_FILE_RESPONSE,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None)
+        EbMsMessageType.ENERGY_FILE_RESPONSE, messageCodeVersion=Some("01.00"))
 
       storage ! MessageStorage.AddMessage(message, probe.ref)
       probe.expectMessageType[MessageStorage.Added]
@@ -42,14 +36,7 @@ class MessageStorageSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
         "AT3241234124312432143",
         "AT100130",
         "RC003000",
-        EbMsMessageType.ENERGY_FILE_RESPONSE,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None)
+        EbMsMessageType.ENERGY_FILE_RESPONSE, messageCodeVersion=Some("01.00"))
 
       storage ! MessageStorage.AddMessage(message, probe.ref)
       val added = probe.expectMessageType[MessageStorage.Added]
@@ -70,13 +57,7 @@ class MessageStorageSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike 
         "AT100130",
         "RC003000",
         EbMsMessageType.ENERGY_FILE_RESPONSE,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None
+        messageCodeVersion=Some("01.00"),
       )
 
       storage ! PrepareMessageActor.PrepareMessage(message, probe.ref)

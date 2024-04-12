@@ -9,17 +9,18 @@ import utils.ActorContextImplicits
 
 import akka.Done
 import akka.actor.ActorRef
-import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{Behavior, SupervisorStrategy, ActorRef => TypedActorRef}
 import akka.stream.alpakka.mqtt.scaladsl.{MqttFlow, MqttMessageWithAck}
 import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
 import akka.stream.scaladsl.{Flow, Keep, RunnableGraph, Sink, Source}
 import akka.stream.{ActorAttributes, CompletionStrategy, OverflowStrategy, Supervision}
-//import akka.stream.typed.{ActorAttributes, CompletionStrategy, OverflowStrategy, Supervision}
 import akka.util.ByteString
+import io.circe.Json
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import org.slf4j.Logger
 
 import javax.net.ssl.SSLContext
 import scala.concurrent.Future
@@ -30,15 +31,27 @@ trait EdaEvent {
   val message: EbMsMessage
 }
 
+case class CommandMessage (
+  val tenant: String,
+  val command: String,
+  val payload: Json,
+)
+
 case class MqttBaseTopicProvider(base: String)
 
 object MqttProtocol {
 
   sealed trait MqttCmd
 
+  sealed trait MqttMessageCmd extends MqttCmd {
+    val ack: Option[() => Future[Done]]
+  }
+
   case class EdaInboundMessage(protocol: String, message: EbMsMessage) extends EdaEvent
 
-  case class EdaEventReceived(ev: EdaEvent, ack: Option[() => Future[Done]]) extends MqttCmd
+  case class EdaEventReceived(ev: EdaEvent, ack: Option[() => Future[Done]]) extends MqttMessageCmd
+
+  case class EdaMessageCommand(command: CommandMessage, ack: Option[() => Future[Done]]) extends MqttMessageCmd
 
   case object MQTTConnected extends MqttCmd
 
@@ -65,7 +78,7 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
 
 //        val act = context.messageAdapter[EdaEvent](ev => EdaEventReceived(ev, None))
 
-        val src = mqttStreamSource(baseTopic, connectionSettings(cfg))
+        val src = mqttStreamSource(baseTopic, connectionSettings(cfg))(context.log)
         val ((mqttStream, subscribed), sinkResult) = src.run()
         // add mqtt stream event handlers
         sinkResult.recover {
@@ -77,8 +90,6 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
           context.self ! MQTTConnected
         }
 
-        context.self ! MQTTConnected
-
         Behaviors.receiveMessagePartial[MqttCmd] {
           case MQTTConnected =>
             context.log.info("mqtt client successfully connected")
@@ -89,7 +100,7 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
             throw err
           case Terminate =>
             mqttStream ! Terminate
-            terminatingOk()
+            terminatingOk(context)
         }
       }
     }.onFailure(SupervisorStrategy.restartWithBackoff(minBackoff = 4.seconds, maxBackoff = 1.minute, randomFactor = 0.2))
@@ -99,8 +110,10 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
     Behaviors.setup { implicit context =>
       Behaviors.receiveMessagePartial {
         case ev: EdaEventReceived =>
-          context.log.info("EdaEvent received ..............")
           mqttStream ! ev
+          Behaviors.same
+        case cmd: EdaMessageCommand =>
+          mqttStream ! cmd
           Behaviors.same
         case TerminatedWithError(err) =>
           context.log.error("mqtt client connection error", err)
@@ -108,30 +121,30 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
           throw err
         case Terminate =>
           mqttStream ! Terminate
-          terminatingOk()
+          terminatingOk(context)
         case TerminatedOk =>
           Behaviors.same
       }
     }
   }
 
-  private def terminatingOk(): Behavior[MqttCmd] =
+  private def terminatingOk(context: ActorContext[MqttCmd]): Behavior[MqttCmd] =
     Behaviors.receiveMessagePartial {
       case TerminatedOk =>
         Behaviors.stopped
-      case TerminatedWithError(_) =>
+      case TerminatedWithError(err) =>
+        context.log.error("mqtt client connection error", err)
         Behaviors.stopped
       case _ =>
         Behaviors.same
     }
 
-  private def mqttStreamSource(baseTopic: String, settings: MqttConnectionSettings): RunnableGraph[((ActorRef, Future[Done]), Future[Done])] = {
-
-    val mqttFlow: Flow[MqttMessage, MqttMessageWithAck, Future[Done]] =
-      MqttFlow.atLeastOnce(
+  private def mqttStreamSource(baseTopic: String, settings: MqttConnectionSettings)(implicit logger: Logger): RunnableGraph[((ActorRef, Future[Done]), Future[Done])] = {
+    val mqttFlow: Flow[MqttMessageWithAck, MqttMessageWithAck, Future[Done]] =
+      MqttFlow.atLeastOnceWithAck(
         settings,
         MqttSubscriptions.empty,
-        bufferSize = 8,
+        bufferSize = 16,
         MqttQoS.AtLeastOnce
       )
     val alwaysStop: Supervision.Decider = _ => Supervision.Stop
@@ -147,12 +160,20 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
     }
 
     Source
-      .actorRef[EdaEventReceived](compStage, failMatcher, 1000, OverflowStrategy.dropTail)
-      .map { edaEv => event2Mqtt(edaEv.ev)}
+      .actorRef[MqttMessageCmd](compStage, failMatcher, 2000, OverflowStrategy.dropTail)
+      .map { edaEv =>
+        event2Mqtt(edaEv) match {
+          case Some(e) if edaEv.ack.isDefined =>
+            Some(e.withAck(edaEv.ack.get))
+          case Some(e) =>
+            Some(e.withoutAck())
+          case _ => None
+        }
+      }
       .filter(_.isDefined)
       .map(_.get)
       .log("MQTT SERVER", x => {
-        println(s"Send MQTT Message to ${x.topic}")
+        logger.info(s"Send MQTT Message to ${x.message.topic}")
       })
       .viaMat(mqttFlow)(Keep.both)
       .toMat(Sink.ignore)(Keep.both)
@@ -170,17 +191,26 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
     }.get
   }
 
-  private def event2Mqtt(ev: EdaEvent)(implicit _btp: MqttBaseTopicProvider): Option[MqttMessage] = (ev match {
+  private def event2Mqtt(ev: MqttMessageCmd)(implicit _btp: MqttBaseTopicProvider): Option[MqttMessage] = (ev match {
     // transform some events?
     case ev => moduleEvent2Mqtt(ev)
   }).map(ev => ev.withTopic(s"${_btp.base}/${ev.topic}")) // prepend base topic
 
-  private def moduleEvent2Mqtt(ev: EdaEvent)(implicit _btp: MqttBaseTopicProvider): Option[MqttMessage] =
-    eventToMqttMessage(ev)
+  private def moduleEvent2Mqtt(ev: MqttMessageCmd)(implicit _btp: MqttBaseTopicProvider): Option[MqttMessage] = {
+    ev match {
+      case EdaEventReceived(ev, _) => eventToMqttMessage(ev)
+      case EdaMessageCommand(cmd, _) => commandToMqttMessage(cmd)
+    }
+  }
 
   private def eventToMqttMessage(event: EdaEvent): Option[MqttMessage] = {
     val value = event.message.asJson.deepDropNullValues.noSpaces
-    Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(value)).withRetained(true))
+    Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(value)).withRetained(false))
+  }
+
+  private def commandToMqttMessage(command: CommandMessage): Option[MqttMessage] = {
+    val value = command.payload.deepDropNullValues.noSpaces
+    Some(MqttMessage(s"${edaCommandModulePath(command.tenant, command.command)}", ByteString(value)).withRetained(false))
   }
 
   private implicit class MqttMessageAckExt(msg: MqttMessage) {

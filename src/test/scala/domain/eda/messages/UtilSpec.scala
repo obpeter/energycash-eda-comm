@@ -2,10 +2,12 @@ package at.energydash
 package domain.eda.messages
 
 import domain.eda.message.MessageHelper
-import domain.util.zip.CRC8
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import utils.zip.CRC8
+
+import java.util.Calendar
 
 class UtilSpec extends AnyWordSpec with Matchers {
 
@@ -16,6 +18,15 @@ class UtilSpec extends AnyWordSpec with Matchers {
       crc8.update("test".getBytes)
 
       crc8.getValue shouldBe(181)
+    }
+
+    "Calendar" in {
+      val processDate = Calendar.getInstance
+      processDate.set(2024, 4, 31, 0,0,0)
+      println(processDate.getTime.toString)
+      processDate.add(Calendar.DATE, 1)
+
+      println(processDate.getTime.toString)
     }
 
 //    "CRC 32" in {

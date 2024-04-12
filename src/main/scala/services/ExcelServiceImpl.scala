@@ -72,4 +72,5 @@ class ExcelServiceImpl(session: Session, implicit val system: ActorSystem[_]) ex
 
     mailer(envelope)
   }
+
 }

@@ -1,12 +1,11 @@
 package at.energydash
 package domain.email
 
-import courier.Mailer
-import domain.dao.model.TenantConfig
+import config.{ConfigExtensions, Config => AppConfig}
+import domain.dao.TenantConfig
 
-import config.{Config => AppConfig}
 import com.typesafe.config.Config
-import config.ConfigExtensions
+import courier.Mailer
 
 import java.util.Properties
 import javax.mail.{PasswordAuthentication, Session}
@@ -32,10 +31,6 @@ object ConfiguredMailer {
 
     val properties = new Properties()
 
-//    val map = config.getConfig("javaxmail").entrySet().asScala.map(e => e.getKey -> e.getValue.unwrapped()).toMap
-//    println("------------------Email Map: ")
-//    println(map)
-
     val mergedMap:Map[String, Object] = config.toMap() ++ AppConfig.getDomain(config.domain)
 
     properties.putAll(mergedMap.asJava)
@@ -48,31 +43,15 @@ object ConfiguredMailer {
       }
     }
 
-//    def getOption[T](key: String, extract: Config => (String => T)): Option[T] = {
-//      if (self.hasPath(key)) Option(extract(self)(key))
-//      else None
-//    }
-//    def getOptionConfigured[T](key: String, constructor: Config => T): Option[T] = {
-//      getOption(key, _.getConfig).map(constructor)
-//    }
-
     def getOptionConfigured[T](user: String, pass: String, constructor: (String, String) => T): Option[T] = {
      Some(constructor(user, pass))
     }
-
-//    val configAuthenticator = config.getOptionConfigured("authenticator", authenticatorFromConfig)
-
     val configAuthenticator = getOptionConfigured(config.toAuthMap().getOrElse("username", ""), config.toAuthMap().getOrElse("password", ""), authenticatorFromConfig)
     //Then make the session
     val session = configAuthenticator.fold(Session.getInstance(properties))(
       authenticator => Session.getInstance(properties, authenticator))
-//    session.setDebug(true)
     session
   }
-
-//  def createMailerFromConfig(config: (String, Config)): Mailer = {
-//    createMailerFromSession(getSession(config))
-//  }
 
   def createMailerFromSession(session: Session): Mailer = {
     Mailer(session)

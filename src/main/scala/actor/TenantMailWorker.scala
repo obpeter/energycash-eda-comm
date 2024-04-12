@@ -1,19 +1,16 @@
 package at.energydash
 package actor
 
-import actor.TenantMailActor.{DeleteEmailCommand, FetchEmailCommand}
-import actor.commands.{Command, EmailCommand}
-
-import akka.actor.typed.scaladsl.AskPattern.Askable
-import akka.actor.typed.scaladsl.{Behaviors, TimerScheduler}
-import akka.actor.typed.{ActorRef, Behavior}
 import actor.MqttPublisher.MqttCommand
+import actor.TenantMailActor.{DeleteEmailCommand, FetchEmailCommand}
 import config.Config
-import domain.dao.model.TenantConfig
-import domain.dao.spec.{Db, SlickEmailOutboxRepository}
+import domain.dao.{SlickEmailOutboxRepository, TenantConfig}
 import domain.email.EmailService.{EmitSendEmailCommand, SendEmailCommand}
 
-import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration, MILLISECONDS, SECONDS}
+import akka.actor.typed.scaladsl.{Behaviors, TimerScheduler}
+import akka.actor.typed.{ActorRef, Behavior}
+
+import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration, MILLISECONDS}
 
 class FetchMailTenantWorker(timers: TimerScheduler[EmailCommand],
                             tenant: TenantConfig,
@@ -36,7 +33,7 @@ class FetchMailTenantWorker(timers: TimerScheduler[EmailCommand],
       val mailActor = context.spawn(TenantMailActor(tenant, messageStore, mailRepo), name = "mail-actor")
 
       def activated(mailActor: ActorRef[EmailCommand]): Behavior[EmailCommand] = {
-        println("Activate Tenant Worker")
+        context.log.info(s"Activate Tenant Worker for tenant ${tenant.tenant}")
         Behaviors.receiveMessage[EmailCommand] {
           case Refresh =>
             mailActor ! FetchEmailCommand(tenant.tenant, "", mqttPublisher)

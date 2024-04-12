@@ -1,7 +1,8 @@
 package at.energydash
 package domain.email
 
-import domain.dao.model.TenantConfig
+import domain.dao.TenantConfig
+
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 

@@ -18,6 +18,10 @@ object EbMsMessageType extends Enumeration {
   val ONLINE_REG_APPROVAL: EbMsMessageType.Value = Value("ZUSTIMMUNG_ECON")
   val ONLINE_REG_COMPLETION: EbMsMessageType.Value = Value("ABSCHLUSS_ECON")
 
+  val CHANGE_METER_PARTITION: EbMsMessageType.Value = Value("ANFORDERUNG_CPF")
+  val CHANGE_METER_PARTITION_REJECTION: EbMsMessageType.Value = Value("ABLEHNUNG_CPF")
+  val CHANGE_METER_PARTITION_ANSWER: EbMsMessageType.Value = Value("ANTWORT_CPF")
+
   // Energy Sync and Energy Message
   val ENERGY_SYNC_REQ: EbMsMessageType.Value = Value("ANFORDERUNG_PT")
   val ENERGY_SYNC_RES: EbMsMessageType.Value = Value("ANTWORT_PT")
@@ -26,11 +30,11 @@ object EbMsMessageType extends Enumeration {
   val EDA_MSG_AUFHEBUNG_CCMI: EbMsMessageType.Value = Value("AUFHEBUNG_CCMI")
   val EDA_MSG_AUFHEBUNG_CCMC: EbMsMessageType.Value = Value("AUFHEBUNG_CCMC")
   val EDA_MSG_AUFHEBUNG_CCMS: EbMsMessageType.Value = Value("AUFHEBUNG_CCMS")
+  val EDA_MSG_ABLEHNUNG_CCMS: EbMsMessageType.Value = Value("ABLEHNUNG_CCMS")
+  val EDA_MSG_ANTWORT_CCMS: EbMsMessageType.Value = Value("ANTWORT_CCMS")
 
   val ZP_LIST: EbMsMessageType.Value = Value("ANFORDERUNG_ECP")
   val ZP_LIST_RESPONSE: EbMsMessageType.Value = Value("SENDEN_ECP")
   val EEG_BASE_DATA: EbMsMessageType.Value = Value("ANFORDERUNG_GN")
   val ERROR_MESSAGE: EbMsMessageType.Value = Value("ERROR_MESSAGE")
-
-
 }

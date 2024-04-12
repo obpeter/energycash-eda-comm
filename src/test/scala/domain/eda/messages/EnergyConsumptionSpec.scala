@@ -1,7 +1,7 @@
 package at.energydash
 package domain.eda.messages
 
-import domain.eda.message.ConsumptionRecordMessage
+import domain.eda.message.ConsumptionRecordMessageV0130
 import model.JsonImplicit._
 
 import io.circe.generic.auto._
@@ -17,7 +17,7 @@ class EnergyConsumptionSpec extends AnyWordSpec {
     "Parse from XML" in {
 //      val xmlFile = scala.xml.XML.load(new FileInputStream("/home/petero/projects/energycash/xml/DATEN_CRMSG/message-daten_crmsg.xml"))
       val xmlFile = scala.xml.XML.load(Source.fromResource("message-daten_crmsg.xml").reader())
-      println(ConsumptionRecordMessage.fromXML(xmlFile) match {
+      println(ConsumptionRecordMessageV0130.fromXML(xmlFile) match {
         case Success(m) => m.message.asJson.deepDropNullValues.noSpaces
         case Failure(exception) => exception.toString
       })
