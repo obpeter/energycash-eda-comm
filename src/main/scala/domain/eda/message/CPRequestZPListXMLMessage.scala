@@ -35,7 +35,7 @@ case class CPRequestZPListXMLMessage(message: EbMsMessage) extends EdaXMLMessage
     calendar.set(Calendar.MILLISECOND, 0)
 
     val processCalendar = new GregorianCalendar(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
-//    processCalendar.add(Calendar.DAY_OF_MONTH, 3)
+    //    processCalendar.add(Calendar.DAY_OF_MONTH, 3)
 
     val dateFmt = new SimpleDateFormat("yyyy-MM-dd")
 
@@ -61,35 +61,43 @@ case class CPRequestZPListXMLMessage(message: EbMsMessage) extends EdaXMLMessage
         message.messageId.get,
         message.conversationId,
         Helper.toCalendar(dateFmt.format(processCalendar.getTime)),
-        message.meter.map(x=>x.meteringPoint).getOrElse(""),
+        message.meter.map(x => x.meteringPoint).getOrElse(""),
         message.timeline.map(t => {
-          val from = new GregorianCalendar(tz);from.setTime(t.from);from.set(Calendar.MILLISECOND, 0)
-          from.clear(Calendar.SECOND); from.clear(Calendar.MINUTE); from.clear(Calendar.HOUR)
-          val to = new GregorianCalendar(tz);to.setTime(t.to);to.set(Calendar.MILLISECOND, 0)
-          to.clear(Calendar.SECOND); to.clear(Calendar.MINUTE); to.clear(Calendar.HOUR)
+          val from = new GregorianCalendar(tz);
+          from.setTime(t.from);
+          from.set(Calendar.MILLISECOND, 0)
+          from.clear(Calendar.SECOND);
+          from.clear(Calendar.MINUTE);
+          from.clear(Calendar.HOUR)
+          val to = new GregorianCalendar(tz);
+          to.setTime(t.to);
+          to.set(Calendar.MILLISECOND, 0)
+          to.clear(Calendar.SECOND);
+          to.clear(Calendar.MINUTE);
+          to.clear(Calendar.HOUR)
           xmlprotocol.Extension(
-              None,
-              None,
-              None,
-              None,
-              None,
-              DateTimeFrom = Some(Helper.toCalendar(from)),
-              DateTimeTo = Some(Helper.toCalendar(to)),
-              None,
-              None,
-              false)
-          }),
+            None,
+            None,
+            None,
+            None,
+            None,
+            DateTimeFrom = Some(Helper.toCalendar(from)),
+            DateTimeTo = Some(Helper.toCalendar(to)),
+            None,
+            None,
+            false)
+        }),
 
       )
     )
 
-//    scalaxb.toXML[CPRequest](doc, Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12"), Some("CPRequest"),
-//          scalaxb.toScope(
-//            Some("cp") -> "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12",
-//            Some("ct") -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
-//          ),
-//    //      TopScope,
-//          false).head
+    //    scalaxb.toXML[CPRequest](doc, Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12"), Some("CPRequest"),
+    //          scalaxb.toScope(
+    //            Some("cp") -> "http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12",
+    //            Some("ct") -> "http://www.ebutilities.at/schemata/customerprocesses/common/types/01p20",
+    //          ),
+    //    //      TopScope,
+    //          false).head
 
     scalaxb.toXML[CPRequest](doc, Some("http://www.ebutilities.at/schemata/customerprocesses/cprequest/01p12"), rootNodeLabel,
       scalaxb.toScope(
@@ -120,11 +128,19 @@ object CPRequestZPListXMLMessage extends EdaResponseType {
           messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
           messageCodeVersion = Some("04.10"),
           meterList = Some(document.ProcessDirectory.MPListData
-            .map(mp =>
-              Meter(
-                mp.MeteringPoint,
-                Some(MeterDirectionType.withName(mp.MPTimeData.head.EnergyDirection.toString))
-              )
+            .flatMap(m =>
+              m.MPTimeData.map(mp =>
+                Meter(
+                  meteringPoint = m.MeteringPoint,
+                  direction = Some(MeterDirectionType.withName(mp.EnergyDirection.toString)),
+                  activation = Some(mp.DateActivate.toGregorianCalendar.getTime),
+                  partFact = Some(mp.ECPartFact),
+                  from = Some(mp.DateFrom.toGregorianCalendar.getTime),
+                  to = Some(mp.DateTo.toGregorianCalendar.getTime),
+                  share = mp.ECShare,
+                  plantCategory = mp.PlantCategory
+                ))
+
             )
           ),
         )

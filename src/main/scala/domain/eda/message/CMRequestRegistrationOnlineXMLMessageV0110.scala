@@ -230,11 +230,14 @@ object CMRequestRegistrationOnlineXMLMessageV0200 extends EdaResponseType {
               messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
               messageCodeVersion = Some("02.00"),
               meterList = Some(document.ProcessDirectory.MPListData
-                .map(mp =>
-                  Meter(
-                    mp.MeteringPoint,
-                    Some(MeterDirectionType.withName(mp.MPTimeData.head.EnergyDirection.toString))
-                  )
+                .flatMap(m =>
+                  m.MPTimeData.map(mp =>
+                    Meter(
+                      meteringPoint=m.MeteringPoint,
+                      direction=Some(MeterDirectionType.withName(mp.EnergyDirection.toString)),
+                      activation=Some(mp.DateActivate.toGregorianCalendar.getTime),
+                      partFact=Some(mp.ECPartFact)
+                    ))
                 )
               ),
             )

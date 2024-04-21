@@ -6,7 +6,7 @@ import model.{EbMsMessage, ResponseData}
 import config.Config
 
 import scalaxb.Helper
-import xmlprotocol.{AUFHEBUNG_CCMI, AddressType, CMRevoke, DocumentModeType2, ECNumber, MarketParticipantDirectoryType6, Number01Value4, Number01u4600Value4, PRODValue2, ProcessDirectoryType6, RoutingAddress, RoutingHeader, SIMUValue2, SchemaVersionType6}
+import xmlprotocol.{AUFHEBUNG_CCMI, AddressType, CMRevoke, DocumentModeType, ECNumber, MarketParticipantDirectoryType6, Number01Value4, Number01u4600Value4, PRODValue, ProcessDirectoryType6, RoutingAddress, RoutingHeader, SIMUValue, SchemaVersionType6}
 
 import java.util.{Calendar, Date}
 import scala.util.Try
@@ -42,9 +42,9 @@ case class CMRevokeXMLMessageV0100(message: EbMsMessage) extends EdaXMLMessage[C
         Number01Value4,
         AUFHEBUNG_CCMI,
         Map(
-          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType2](Config.interfaceMode match {
-            case "SIMU" => SIMUValue2
-            case _ => PRODValue2
+          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](Config.interfaceMode match {
+            case "SIMU" => SIMUValue
+            case _ => PRODValue
           })),
           ("@Duplicate", scalaxb.DataRecord(false)),
           ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType6](Number01u4600Value4)),

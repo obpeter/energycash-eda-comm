@@ -1,7 +1,7 @@
 package at.energydash
 package services
 
-import admin.mail.{Attachement, SendMailWithInlineAttachmentsRequest}
+import admin.mail.{Attachement, SendMailRequest, SendMailWithInlineAttachmentsRequest}
 import domain.dao.{Db, SlickEmailOutboxRepository, TenantConfig}
 import domain.email.MockedSMTPProvider
 
@@ -36,6 +36,18 @@ class SendMailServiceImplSpec extends ScalaTestWithActorTestKit with AnyWordSpec
 //  override val testKit = ActorTestKit()
 //  override implicit val system: ActorSystem[_] = testKit.system
 
+  private def sendMail(recipient: String, body: String, attachment: Option[Attachement]) = {
+    val mailService = new SendMailServiceImpl(mockedSession)
+
+    val request = SendMailRequest(
+      sender = "system@mail.com", recipient = recipient,
+      subject = "Test Message",
+      body = Some(com.google.protobuf.ByteString.copyFrom(body.getBytes)),
+      attachment = attachment)
+    val reply = Await.result(mailService.sendMail(request), 5.second)
+    println(reply)
+  }
+
   "Send Email over gRPC" should {
     "Send HTML Inline MailCommand" in {
 
@@ -64,6 +76,68 @@ class SendMailServiceImplSpec extends ScalaTestWithActorTestKit with AnyWordSpec
       println(momsMsg.getContent.asInstanceOf[MimeMultipart].getBodyPart(0).getDisposition())
       println(momsMsg)
       momsMsg.getSubject should be("Test Message")
+
+      Mailbox.clearAll()
+    }
+
+    "Send HTML MailCommand" in {
+      val imgAttachment = com.google.protobuf.ByteString.copyFrom(getClass.getResourceAsStream("/Aktivierungsmail-menu-1.png").readAllBytes())
+      sendMail(
+        recipient = "tester@mail.com ;",
+        body = "fileBody",
+        attachment = Some(Attachement(contentId = Some("image1"), mimeType = "image/png", filename = "image1", content = imgAttachment))
+      )
+
+      val momsInbox = Mailbox.get("tester@mail.com")
+      momsInbox should have size 1
+
+      val momsMsg = momsInbox.get(0)
+      momsMsg.writeTo(new FileOutputStream(new File(s"Html-message.eml")))
+      val content = momsMsg.getContent.asInstanceOf[MimeMultipart]
+      content.getCount should be(2)
+      println(momsMsg.getContent.asInstanceOf[MimeMultipart].getBodyPart(0).getDisposition)
+      println(momsMsg)
+      momsMsg.getSubject should be("Test Message")
+      momsMsg.getAllRecipients.length should be(1)
+
+      Mailbox.clearAll()
+    }
+    "Send HTML MailCommand - multiple recipient" in {
+      val imgAttachment = com.google.protobuf.ByteString.copyFrom(getClass.getResourceAsStream("/Aktivierungsmail-menu-1.png").readAllBytes())
+      sendMail(
+        recipient = "tester@mail.com ; tester1@mail.com",
+        body = "fileBody",
+        attachment = Some(Attachement(contentId = Some("image1"), mimeType = "image/png", filename = "image1", content = imgAttachment))
+      )
+
+      val momsInbox = Mailbox.get("tester@mail.com")
+      momsInbox should have size 1
+      val momsMsg = momsInbox.get(0)
+
+      val content = momsMsg.getContent.asInstanceOf[MimeMultipart]
+      content.getCount should be(2)
+      momsMsg.getSubject should be("Test Message")
+      momsMsg.getAllRecipients.length should be(2)
+
+      Mailbox.clearAll()
+    }
+
+    "Send HTML MailCommand - wrong recipient" in {
+      val imgAttachment = com.google.protobuf.ByteString.copyFrom(getClass.getResourceAsStream("/Aktivierungsmail-menu-1.png").readAllBytes())
+      sendMail(
+        recipient = "tester@mail.com ; tester1.mail.com",
+        body = "fileBody",
+        attachment = Some(Attachement(contentId = Some("image1"), mimeType = "image/png", filename = "image1", content = imgAttachment))
+      )
+
+      val momsInbox = Mailbox.get("tester@mail.com")
+      momsInbox should have size 1
+      val momsMsg = momsInbox.get(0)
+
+      val content = momsMsg.getContent.asInstanceOf[MimeMultipart]
+      content.getCount should be(2)
+      momsMsg.getSubject should be("Test Message")
+      momsMsg.getAllRecipients.length should be(1)
 
       Mailbox.clearAll()
     }
