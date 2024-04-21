@@ -63,7 +63,7 @@ object MessageStorage {
       case MessageUpdated(id, message) =>
         conversations.get(id) match {
           case Some(_) => copy(conversations = conversations.updated(id, StoredConversation(id, Some(message))))
-          case None => this
+          case None => copy(conversations = conversations.updated(id, StoredConversation(id, Some(message))))
         }
       case EcIdUpdated(id, ecId) =>
         conversations.get(id) match {

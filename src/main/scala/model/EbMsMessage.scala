@@ -16,7 +16,15 @@ case class ResponseData(MeteringPoint: Option[String],
 
 case class Timeline(from: Date, to: Date)
 
-case class Meter(meteringPoint: String, direction: Option[MeterDirectionType], activation: Option[Date] = None, partFact: Option[BigDecimal] = None)
+case class Meter(meteringPoint: String,
+                 direction: Option[MeterDirectionType],
+                 activation: Option[Date] = None,
+                 partFact: Option[BigDecimal] = None,
+                 from: Option[Date] = None,
+                 to: Option[Date] = None,
+                 share: Option[BigDecimal] = None,
+                 plantCategory: Option[String] = None,
+                )
 
 case class EnergyValue(from: Date, to: Option[Date]=None, method: Option[String]=None, value: BigDecimal)
 

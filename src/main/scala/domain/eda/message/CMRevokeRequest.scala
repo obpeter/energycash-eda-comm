@@ -1,12 +1,12 @@
 package at.energydash
 package domain.eda.message
 
+import config.Config
 import model.enums.EbMsMessageType
 import model.{EbMsMessage, ResponseData}
-import config.Config
 
 import scalaxb.Helper
-import xmlprotocol.{AUFHEBUNG_CCMS, AddressType, CMNotification, CMRevoke, DocumentModeType2, ECNumber, MarketParticipantDirectoryType6, Number01Value4, Number01u4600Value4, PRODValue2, ProcessDirectoryType6, RoutingAddress, RoutingHeader, SIMUValue2, SchemaVersionType6}
+import xmlprotocol.{AUFHEBUNG_CCMS, AddressType, CMNotification, CMRevoke, DocumentModeType, ECNumber, MarketParticipantDirectoryType6, Number01Value4, Number01u4600Value4, PRODValue, ProcessDirectoryType6, RoutingAddress, RoutingHeader, SIMUValue, SchemaVersionType6}
 
 import java.util.{Calendar, Date}
 import scala.util.Try
@@ -41,9 +41,9 @@ case class CMRevokeRequestV0100(message: EbMsMessage) extends EdaXMLMessage[CMRe
         Number01Value4,
         AUFHEBUNG_CCMS,
         Map(
-          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType2](Config.interfaceMode match {
-            case "SIMU" => SIMUValue2
-            case _ => PRODValue2
+          ("@DocumentMode", scalaxb.DataRecord[DocumentModeType](Config.interfaceMode match {
+            case "SIMU" => SIMUValue
+            case _ => PRODValue
           })),
           ("@Duplicate", scalaxb.DataRecord(false)),
           ("@SchemaVersion", scalaxb.DataRecord[SchemaVersionType6](Number01u4600Value4)),
