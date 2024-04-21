@@ -140,6 +140,7 @@ object CPRequestZPListXMLMessage extends EdaResponseType {
                   share = mp.ECShare,
                   plantCategory = mp.PlantCategory
                 ))
+
             )
           ),
         )
