@@ -19,6 +19,7 @@ case class InlineAttachment(contentId: String, filename: String, mimeType: Strin
 case class MailInlineMessage(from: String, to: String, cc: Option[String], subject: String, htmlBody: String, inlineContent: Seq[InlineAttachment])
 case class MailContent(from: String, to: String, cc: Option[String], subject: String, content: Option[Multipart])
 
+
 class SendMailServiceImpl(session: Session)(implicit val system: ActorSystem[_]) extends SendMailService {
   implicit val timeout: Timeout = 10.seconds
   implicit val sch: Scheduler = system.scheduler

@@ -79,6 +79,7 @@ class SendMailServiceImplSpec extends ScalaTestWithActorTestKit with AnyWordSpec
 
       Mailbox.clearAll()
     }
+
     "Send HTML MailCommand" in {
       val imgAttachment = com.google.protobuf.ByteString.copyFrom(getClass.getResourceAsStream("/Aktivierungsmail-menu-1.png").readAllBytes())
       sendMail(
