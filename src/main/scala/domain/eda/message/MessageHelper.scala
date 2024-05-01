@@ -23,6 +23,7 @@ object MessageHelper {
   def getEdaMessageByType(message: EbMsMessage): EdaXMLMessage[_] = {
     message.messageCode match {
       case ONLINE_REG_INIT => CMRequestRegistrationOnline(message).getVersion()
+      case OFFLINE_REG_INIT => CMRequestOfflineRegistration(message).getVersion()
       case ZP_LIST => CPRequestZPList(message).getVersion()
       case EEG_BASE_DATA => CPRequestBaseData(message).getVersion()
       case ENERGY_SYNC_REQ => CPRequestMeteringValue(message).getVersion()
@@ -51,6 +52,7 @@ object MessageHelper {
           case "02.00" => Some(CMRequestRegistrationOnlineXMLMessageV0200)
           case _ => Some(CMRequestRegistrationOnlineXMLMessageV0110)
         }
+      case PROCESS_REGISTER_OFFLINE => Some(CMRequestOfflineRegistrationXMLMessage)
       case PROCESS_LIST_METERINGPOINTS => Some(CPRequestZPListXMLMessage)
       case PROCESS_METERINGPOINTS_VALUE => Some(CPRequestMeteringValueXMLMessage)
       case PROCESS_REVOKE_VALUE | PROCESS_REVOKE_CUS => Some(CMRevokeXMLMessageV0100)
@@ -72,6 +74,7 @@ object MessageHelper {
       case ZP_LIST => PROCESS_LIST_METERINGPOINTS
       case EEG_BASE_DATA => PROCESS_LIST_METERINGPOINTS
       case ONLINE_REG_INIT => PROCESS_REGISTER_ONLINE
+      case OFFLINE_REG_INIT => PROCESS_REGISTER_OFFLINE
       case ENERGY_SYNC_REQ => PROCESS_METERINGPOINTS_VALUE
       case EDA_MSG_AUFHEBUNG_CCMC | EDA_MSG_AUFHEBUNG_CCMI => PROCESS_REVOKE_VALUE
       case EDA_MSG_AUFHEBUNG_CCMS => PROCESS_REVOKE_SP

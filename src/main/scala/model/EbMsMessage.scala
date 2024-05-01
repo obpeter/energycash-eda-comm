@@ -24,6 +24,7 @@ case class Meter(meteringPoint: String,
                  to: Option[Date] = None,
                  share: Option[BigDecimal] = None,
                  plantCategory: Option[String] = None,
+                 consentId: Option[String] = None,
                 )
 
 case class EnergyValue(from: Date, to: Option[Date]=None, method: Option[String]=None, value: BigDecimal)

@@ -23,12 +23,15 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 
+import domain.eda.message._
+import model.enums.EbMsMessageType._
+
 
 trait FileService {
   implicit val system: ActorSystem[_]
   implicit val mat: Materializer
 
-  def handleUpload(formData: Multipart.FormData, messageStore: ActorRef[MessageStorage.Command[_]]): Future[Done]
+  def handleUpload(formData: Multipart.FormData, messageStore: ActorRef[MessageStorage.Command[_]], ecId: Option[String]): Future[Done]
 }
 
 object FileService {
@@ -82,7 +85,7 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
     }
   }
 
-  def handleUpload(formData: Multipart.FormData, messageStore: ActorRef[MessageStorage.Command[_]]): Future[Done] = {
+  def handleUpload(formData: Multipart.FormData, messageStore: ActorRef[MessageStorage.Command[_]], ecId: Option[String]): Future[Done] = {
     formData.parts
       .map(part => FileInfo(part))
       //      .mapAsync(1)(info => bodyPart2Xml(info.bodyPart).map(xml => {
@@ -117,11 +120,35 @@ class FileServiceImpl(val system: ActorSystem[_], mqttPublisher: ActorRef[MqttCo
             }
       }
       .map {
+        case (processName, message) if ecId.isDefined =>
+          Tuple2(processName, mergeEbmsMessage(Some(message.message.copy(ecId = ecId)), message))
+        case (processName, message) => (processName, message)
+      }
+      .map {
         case (processName, message) =>
           EdaNotification(processName, message) :: Nil
       }
       .map(p => mqttPublisher ! MqttPublish(p))
       .runWith(Sink.ignore)
     }
+
+  def mergeEbmsMessage(stored: Option[EbMsMessage], current: EdaMessage): EdaMessage = {
+    current.message.messageCode match {
+      case ENERGY_SYNC_REJECTION | ENERGY_SYNC_RES =>
+        CPRequestMeteringValue(current.message.copy(meter=stored.flatMap(_.meter), ecId = stored.flatMap(_.ecId)))
+      case EDA_MSG_ABLEHNUNG_CCMS | EDA_MSG_ANTWORT_CCMS =>
+        CMRevokeRequest(current.message.copy(consentEnd = stored.flatMap(_.consentEnd), ecId = stored.flatMap(_.ecId)))
+      case CHANGE_METER_PARTITION_ANSWER | CHANGE_METER_PARTITION_REJECTION =>
+        ECPartitionChangeMessage(current.message.copy(meterList = stored.flatMap(_.meterList), ecId = stored.flatMap(_.ecId)))
+      case ONLINE_REG_ANSWER | ONLINE_REG_REJECTION | ONLINE_REG_APPROVAL | ONLINE_REG_COMPLETION =>
+        CMRequestRegistrationOnline(current.message.copy(ecId = stored.flatMap(_.ecId)))
+      case ZP_LIST_RESPONSE =>
+        CPRequestZPList(current.message.copy(ecId = stored.flatMap(_.ecId)))
+      case ENERGY_FILE_RESPONSE =>
+        ConsumptionRecordMessage(current.message.copy(ecId = stored.flatMap(_.ecId)))
+      case _ =>
+        current
+    }
+  }
 }
 

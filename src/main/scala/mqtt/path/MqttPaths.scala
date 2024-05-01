@@ -8,7 +8,7 @@ trait MqttPaths {
   private def normalizeProtocolId(id: String): String = {
     id.toLowerCase match {
       case "cr_msg_03.03" => "cr_msg"
-      case _ => id.toLowerCase
+      case id_l => id_l
     }
   }
 

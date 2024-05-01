@@ -12,15 +12,18 @@ import model.enums.EbMsProcessType
 import mqtt.path.MqttPaths
 
 import akka.actor.typed.{ActorRef, ActorSystem}
-import akka.stream.alpakka.mqtt.{MqttMessage, MqttQoS}
+import akka.stream.alpakka.mqtt.scaladsl.{MqttSink, MqttSource}
+import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.typed.scaladsl.ActorFlow
+import akka.stream.{ActorAttributes, Supervision}
 import akka.util.{ByteString, Timeout}
 import akka.{Done, NotUsed}
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe.syntax._
-import org.slf4j.{Logger, LoggerFactory}
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import org.slf4j.Logger
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContextExecutor, Future}
@@ -35,13 +38,26 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
 
   implicit val timeout: Timeout = Timeout(15.seconds)
   implicit val ec: ExecutionContextExecutor = system.executionContext
-  var logger: Logger = LoggerFactory.getLogger(classOf[MqttRequestStream])
+//  var logger: Logger = LoggerFactory.getLogger(classOf[MqttRequestStream])
+  var logger: Logger = system.log
 
+  private case class MqttException(errorMsg: MqttMessage, s: String = "", cause: Option[Throwable] = None) extends RuntimeException(s) {
+    cause.foreach(initCause)
+  }
 
-  private val decodingFlow: Flow[String, Either[MqttMessage, EbMsMessage], NotUsed] = {
-    Flow.fromFunction(msg => decode[EbMsMessage](msg).left.map(error =>
-      MqttMessage(s"${Config.errorTopic}", ByteString(error.getMessage)))
-    )
+  private val extractTenantFromTopic = (topic: String) => topic.split("/")(3)
+
+  //  private val decodingFlow: Flow[String, Either[MqttMessage, EbMsMessage], NotUsed] = {
+  //    Flow.fromFunction(msg => decode[EbMsMessage](msg).left.map(error => {
+  //      MqttMessage(s"${Config.errorTopic}", ByteString(error.getMessage))
+  //    })
+  //    )
+  //  }
+  private val decodingFlow: Flow[String, EbMsMessage, NotUsed] = {
+    Flow.fromFunction(msg => decode[EbMsMessage](msg) match {
+      case Right(m) => m
+      case Left(error) => throw MqttException(MqttMessage(s"${Config.errorTopic}", ByteString(error.getMessage)), error.getMessage)
+    })
   }
 
   private val prepareMessageFlow: Flow[EbMsMessage, EbMsMessage, NotUsed] =
@@ -71,12 +87,15 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
     val msgCode = EDAMessageCodeToProcessCode(data.messageCode)
     val msgCodeVersion: Option[String] = msgCode match {
       case EbMsProcessType.PROCESS_EC_PRTFACT_CHANGE => Some("_01.00")
-      case _ if data.messageCodeVersion.isDefined => data.messageCodeVersion.map("_"+_)
+      case _ if data.messageCodeVersion.isDefined => data.messageCodeVersion.map("_" + _)
       case _ => None
     }
-    s"[${msgCode}${msgCodeVersion match {
-    case Some(v) => v
-    case None => ""}} MessageId=${data.messageId.getOrElse("")}]"
+    s"[${msgCode}${
+      msgCodeVersion match {
+        case Some(v) => v
+        case None => ""
+      }
+    } MessageId=${data.messageId.getOrElse("")}]"
   }
 
   private val prepareEmailMessageFlow: Flow[EbMsMessage, EmailService.EmailModel, NotUsed] =
@@ -84,7 +103,7 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
       MessageHelper.getEdaMessageByType(data).toByte.fold(
         e => throw e,
         attachment => {
-//          val subject = s"[${EDAMessageCodeToProcessCode(data.messageCode).toString}${if(data.messageCodeVersion.isDefined) "_"+data.messageCodeVersion else ""} MessageId=${data.messageId.getOrElse("")}]"
+          //          val subject = s"[${EDAMessageCodeToProcessCode(data.messageCode).toString}${if(data.messageCodeVersion.isDefined) "_"+data.messageCodeVersion else ""} MessageId=${data.messageId.getOrElse("")}]"
           val subject = buildHeader(data)
           val to = data.receiver.toUpperCase()
           val tenant = data.sender.toUpperCase()
@@ -96,60 +115,50 @@ class MqttRequestStream(mailService: ActorRef[EmailCommand],
       )
     })
 
-  def run(source: Source[MqttMessage, Future[Done]],
-          responseSink: Sink[MqttMessage, _],
-          errorSink: Sink[MqttMessage, _],
-         ): Future[Done] = {
-
-    implicit val timeout: Timeout = Timeout(15.seconds)
-    val invalidEventsCommitter: Sink[Either[MqttMessage, _], NotUsed] =
-      Flow[Either[MqttMessage, _]]
-        .collect { case Left(error) => error }
-        .to(errorSink)
-
-    source
-      .map(msg => msg.payload.utf8String)
-      .log("MQTT Receiver")
-//      .map(m => {
-//        println("####### ", m)
-//        m
-//      })
-      .via(decodingFlow.divertTo(invalidEventsCommitter, _.isLeft).collect { case Right(m) => m })
+  private def commandFlow(input: String): Future[MqttMessage] = {
+    Source.single[String](input)
+      .via(decodingFlow)
       .via(prepareMessageFlow)
       .via(prepareEmailMessageFlow)
       .via(
         ActorFlow.ask(parallelism = 1)(mailService)((msg: EmailService.EmailModel, replyTo: ActorRef[EmailCommand]) =>
           DistributeMail(msg.tenant, msg, replyTo)).collect {
-          case EmailService.SendEmailResponse(msg) => Right(msg)
+          case EmailService.SendEmailResponse(msg) => msg
           case err: EmailService.SendErrorResponse =>
-            logger.error(s"Receive Errormessage sending Mail $err")
-            Left(err)
+            throw MqttException(MqttMessage(edaReqResPath(err.tenant, "error"), ByteString(err.asJson.toString().strip())), err.message)
         }
       )
+      .via(storeMessageFlow)
       .recover {
-        case e => {
-          logger.error(s"Error in Request Stream: ${e.getMessage}")
-          Left(EmailService.SendErrorResponse("TE000000", e.getMessage))
-        }
-      }
-      .flatMapConcat {
-        case Left(error) ⇒ Source
-          .single(error)
-          .via(Flow.fromFunction(err =>
-            MqttMessage(
-              edaReqResPath(err.tenant, "error"),
-              ByteString(err.asJson.toString().strip())).withQos(MqttQoS.AtLeastOnce).withRetained(false)
-          ))
-        case Right(msg) => Source
-          .single(msg)
-          .via(storeMessageFlow)
-      }
-      .recover {
+        case me: MqttException =>
+          logger.error(s"Error Stream handling - ${me.getMessage}")
+          me.errorMsg.withQos(MqttQoS.AtMostOnce)
         case e =>
-          println(s"Recover: ${e.getMessage}")
+          logger.error(s"Recover: ${e.getMessage}")
           MqttMessage("eda/response/error", ByteString(e.getMessage))
+      }.runWith(Sink.head[MqttMessage])
+  }
+
+  def startCommand(): Future[Done] = runCommand(MqttRequestStream.mqttSource, MqttRequestStream.mqttSink)
+
+  def runCommand( source: Source[MqttMessage, Future[Done]], responseSink: Sink[MqttMessage, _]): Future[Done] = {
+    implicit val timeout: Timeout = Timeout(15.seconds)
+
+    val decider: Supervision.Decider = {
+      case e: MqttException => {
+        logger.error(s"Supervision Decider - Resume $e")
+        Supervision.Resume
       }
+      case _: RuntimeException => Supervision.Resume
+      case _ => Supervision.Stop
+    }
+
+    source
+      .map(msg => msg.payload.utf8String)
+      .mapAsync(1)(commandFlow)
+      .map(_.withQos(MqttQoS.atLeastOnce))
       .to(responseSink)
+      .withAttributes(ActorAttributes.supervisionStrategy(decider))
       .run()
   }
 }
@@ -162,4 +171,23 @@ object MqttRequestStream {
            (implicit system: ActorSystem[_]): MqttRequestStream = {
     new MqttRequestStream(mailService, messageTransformer, messageStore)
   }
+
+  private val consumerSettings =
+    MqttConnectionSettings(
+      Config.getMqttMailConfig.url,
+      Config.getMqttMailConfig.consumerId,
+      new MemoryPersistence)
+      .withAutomaticReconnect(true)
+      .withCleanSession(false)
+
+  private def mqttSource: Source[MqttMessage, Future[Done]] = MqttSource.atMostOnce(
+    consumerSettings,
+    MqttSubscriptions(Map(Config.getMqttMailConfig.topic -> MqttQoS.AtLeastOnce)),
+    bufferSize = 20
+  )
+
+  private def mqttSink: Sink[MqttMessage, Future[Done]] =
+    MqttSink(
+      MqttRequestStream.consumerSettings.withClientId(clientId = s"${Config.getMqttMailConfig.consumerId}/pong"),
+      MqttQoS.atLeastOnce)
 }

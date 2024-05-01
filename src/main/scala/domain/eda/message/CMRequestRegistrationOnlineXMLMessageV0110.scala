@@ -132,15 +132,12 @@ case class CMRequestRegistrationOnlineXMLMessageV0200(message: EbMsMessage) exte
         message.requestId.get,
         None,
         ReqTypeType(
-          "EnergyCommunityRegistration",
-          Helper.toCalendar(dateFmt.format(processCalendar.getTime)),
-          Some(Helper.toCalendar(dateFmt.format(new GregorianCalendar(2099, 12, 31).getTime))),
-          None, //Some(QHValue),
-          None, //Some(DValue2),
-          message.ecId,
+          ReqDatType="EnergyCommunityRegistration",
+          DateFrom=Helper.toCalendar(dateFmt.format(processCalendar.getTime)),
+          DateTo=Some(Helper.toCalendar(dateFmt.format(new GregorianCalendar(2099, 12, 31).getTime))),
+          ECID=message.ecId,
           ECPartFact=message.meter.map { m => m.partFact.getOrElse(100)},
-          None, //Some(BigDecimal(0.0)),
-          message.meter.map { m =>
+          EnergyDirection=message.meter.map { m =>
             m.direction match {
               case Some(MeterDirectionType.CONSUMPTION) => CONSUMPTIONValue2
               case Some(MeterDirectionType.GENERATION) => GENERATIONValue2
