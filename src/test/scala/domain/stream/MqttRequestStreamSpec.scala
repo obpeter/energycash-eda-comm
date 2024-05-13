@@ -12,7 +12,7 @@ import akka.actor.typed.ActorSystem
 import akka.actor.{ActorSystem => OldActorSystem}
 import akka.stream.Materializer
 import akka.stream.alpakka.mqtt.MqttMessage
-import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.scaladsl.Source
 import akka.stream.testkit.scaladsl.TestSink
 import akka.util.{ByteString, Timeout}
 import akka.{Done, NotUsed}
@@ -59,7 +59,7 @@ class MqttRequestStreamSpec extends AnyWordSpecLike with Matchers with BeforeAnd
       val errorSinkProbe = TestSink.probe[MqttMessage]
 
       val (errMsg, errSink) = errorSinkProbe.preMaterialize()
-      mqttReqestStream.run(mqttSource, Sink.ignore, errSink)
+      mqttReqestStream.runCommand(mqttSource, errSink)
 
       errMsg.requestNext().payload.utf8String should startWith("Missing required field")
     }
@@ -94,7 +94,7 @@ class MqttRequestStreamSpec extends AnyWordSpecLike with Matchers with BeforeAnd
       val (respMsg, respSink) = responseSinkProbe.preMaterialize()
 
       val res = Future {
-        mqttReqestStream.run(mqttSource, respSink, Sink.ignore)
+        mqttReqestStream.runCommand(mqttSource, respSink)
         respMsg.request(2).requestNext()
       }
 
@@ -152,7 +152,7 @@ class MqttRequestStreamSpec extends AnyWordSpecLike with Matchers with BeforeAnd
       val (respMsg, respSink) = responseSinkProbe.preMaterialize()
 
       val res = Future {
-        mqttReqestStream.run(mqttSource, respSink, Sink.ignore)
+        mqttReqestStream.runCommand(mqttSource, respSink)
         respMsg.request(2).requestNext()
       }
 

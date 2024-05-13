@@ -3,14 +3,14 @@ package domain.eda.message
 
 import config.Config
 import model.enums.{EbMsMessageType, MeterDirectionType}
-import model.{EbMsMessage, Meter}
+import model.{EbMsMessage, Meter, ResponseData}
 
 import scalaxb.Helper
-import xmlprotocol.{AddressType, CPRequest, DocumentModeType, ECMPList2, ECNumber, MarketParticipantDirectoryType4, Number01Value4, Number01u4612, PRODValue, ProcessDirectoryType4, RoutingAddress, RoutingHeader, SIMUValue, SchemaVersionType4}
+import xmlprotocol.{AddressType, CPNotification, CPRequest, DocumentModeType, ECMPList2, ECNumber, MarketParticipantDirectoryType4, Number01Value4, Number01u4612, PRODValue, ProcessDirectoryType4, RoutingAddress, RoutingHeader, SIMUValue, SchemaVersionType4}
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, TimeZone}
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scala.xml.{Elem, NamespaceBinding, Node, TopScope}
 
 case class CPRequestZPList(message: EbMsMessage) extends EdaMessage {
@@ -118,33 +118,62 @@ case class CPRequestZPListXMLMessage(message: EbMsMessage) extends EdaXMLMessage
 
 object CPRequestZPListXMLMessage extends EdaResponseType {
   def fromXML(xmlFile: Elem): Try[CPRequestZPList] = {
-    Try(scalaxb.fromXML[ECMPList2](xmlFile)).map(document =>
-      CPRequestZPList(
-        EbMsMessage(
-          messageId = Some(document.ProcessDirectory.MessageId),
-          conversationId = document.ProcessDirectory.ConversationId,
-          sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
-          receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
-          messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
-          messageCodeVersion = Some("04.10"),
-          meterList = Some(document.ProcessDirectory.MPListData
-            .flatMap(m =>
-              m.MPTimeData.map(mp =>
-                Meter(
-                  meteringPoint = m.MeteringPoint,
-                  direction = Some(MeterDirectionType.withName(mp.EnergyDirection.toString)),
-                  activation = Some(mp.DateActivate.toGregorianCalendar.getTime),
-                  partFact = Some(mp.ECPartFact),
-                  from = Some(mp.DateFrom.toGregorianCalendar.getTime),
-                  to = Some(mp.DateTo.toGregorianCalendar.getTime),
-                  share = mp.ECShare,
-                  plantCategory = mp.PlantCategory
-                ))
-
+    resolveMessageCode(xmlFile) match {
+      case Success(mc) => mc match {
+        case EbMsMessageType.ZP_LIST_RESPONSE =>
+          Try(scalaxb.fromXML[ECMPList2](xmlFile)).map(document =>
+            CPRequestZPList(
+              EbMsMessage(
+                messageId = Some(document.ProcessDirectory.MessageId),
+                conversationId = document.ProcessDirectory.ConversationId,
+                sender = document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
+                receiver = document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
+                messageCode = EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode.toString),
+                messageCodeVersion = Some("04.10"),
+                meterList = Some(document.ProcessDirectory.MPListData
+                  .flatMap(m =>
+                    m.MPTimeData.map(mp =>
+                      Meter(
+                        meteringPoint = m.MeteringPoint,
+                        direction = Some(MeterDirectionType.withName(mp.EnergyDirection.toString)),
+                        activation = Some(mp.DateActivate.toGregorianCalendar.getTime),
+                        partFact = Some(mp.ECPartFact),
+                        from = Some(mp.DateFrom.toGregorianCalendar.getTime),
+                        to = Some(mp.DateTo.toGregorianCalendar.getTime),
+                        share = mp.ECShare,
+                        plantCategory = mp.PlantCategory
+                      ))
+                  )
+                ),
+              )
             )
-          ),
+          )
+        case _ => Try(scalaxb.fromXML[CPNotification](xmlFile)).map(document =>
+          CPRequestZPList(
+            EbMsMessage(
+              messageId=Some(document.ProcessDirectory.MessageId),
+              conversationId=document.ProcessDirectory.ConversationId,
+              sender=document.MarketParticipantDirectory.RoutingHeader.Sender.MessageAddress,
+              receiver=document.MarketParticipantDirectory.RoutingHeader.Receiver.MessageAddress,
+              messageCode=EbMsMessageType.withName(document.MarketParticipantDirectory.MessageCode),
+              messageCodeVersion=Some("01.13"),
+              responseData = Some(document.ProcessDirectory.ResponseData.ResponseCode.map(r => ResponseData(None, List(r)))),
+            )
+          )
         )
-      )
-    )
+      }
+      case Failure(exception) =>
+        Try(CPRequestZPList(
+          EbMsMessage(
+            messageCode = EbMsMessageType.ERROR_MESSAGE,
+            messageCodeVersion=Some("01.00"),
+            conversationId = "1",
+            messageId = None,
+            sender = "",
+            receiver = "",
+            errorMessage = Some(exception.getMessage)
+          )
+        ))
+    }
   }
 }

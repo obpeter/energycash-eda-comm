@@ -113,6 +113,7 @@ object ConsumptionRecordMessageV0130 extends EdaResponseType {
 
 object ConsumptionRecordMessageV0303 extends EdaResponseType {
   def fromXML(xmlFile: Elem): Try[ConsumptionRecordMessage] = {
+    println("ConsumptionRecord 03.03")
     Try(scalaxb.fromXML[ConsumptionRecord](xmlFile)).map(document =>
       ConsumptionRecordMessage(
         EbMsMessage(

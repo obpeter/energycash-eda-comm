@@ -13,8 +13,11 @@ package object actor {
         CMRevokeRequest(current.message.copy(consentEnd = stored.flatMap(_.consentEnd), ecId = stored.flatMap(_.ecId)))
       case CHANGE_METER_PARTITION_ANSWER | CHANGE_METER_PARTITION_REJECTION =>
         ECPartitionChangeMessage(current.message.copy(meterList = stored.flatMap(_.meterList), ecId = stored.flatMap(_.ecId)))
-      case ONLINE_REG_ANSWER | ONLINE_REG_REJECTION | ONLINE_REG_APPROVAL | ONLINE_REG_COMPLETION =>
+      case ONLINE_REG_ANSWER | ONLINE_REG_REJECTION | ONLINE_REG_APPROVAL | ONLINE_REG_COMPLETION |
+           OFFLINE_REG_ANSWER | OFFLINE_REG_REJECTION | OFFLINE_REG_APPROVAL | OFFLINE_REG_COMPLETION=>
         CMRequestRegistrationOnline(current.message.copy(ecId = stored.flatMap(_.ecId)))
+      case ZP_LIST_RESPONSE =>
+        CPRequestZPList(current.message.copy(ecId = stored.flatMap(_.ecId)))
       case _ =>
         current
     }

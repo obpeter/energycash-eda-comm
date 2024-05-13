@@ -31,6 +31,9 @@ case class CMRevokeRequestV0100(message: EbMsMessage) extends EdaXMLMessage[CMRe
     calendar.setTime(new Date)
     calendar.set(Calendar.MILLISECOND, 0)
 
+    val processDate = Calendar.getInstance
+    processDate.add(Calendar.DATE, 1)
+
     val doc = CMRevoke(
       MarketParticipantDirectoryType6(
         RoutingHeader(
@@ -50,12 +53,12 @@ case class CMRevokeRequestV0100(message: EbMsMessage) extends EdaXMLMessage[CMRe
         )
       ),
       ProcessDirectoryType6(
-        message.messageId.get,
-        message.conversationId,
-        message.requestId.get,
-        message.meter.map(x => x.meteringPoint).get,
-        Helper.toCalendar(dateFmt.format(message.consentEnd.getOrElse(new Date).getTime)),
-        message.reason,
+        MessageId = message.messageId.get,
+        ConversationId = message.conversationId,
+        ConsentId = message.requestId.get,
+        MeteringPoint = message.meter.map(x => x.meteringPoint).get,
+        ConsentEnd = Helper.toCalendar(dateFmt.format(message.consentEnd.getOrElse(new Date).getTime)),
+        Reason = message.reason,
       )
     )
 

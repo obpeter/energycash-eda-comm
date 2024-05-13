@@ -173,7 +173,7 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
       .filter(_.isDefined)
       .map(_.get)
       .log("MQTT SERVER", x => {
-        logger.info(s"Send MQTT Message to ${x.message.topic}")
+        logger.info(s"Send MQTT Message to ${x.message.topic} [${x.message.qos.get.value}]")
       })
       .viaMat(mqttFlow)(Keep.both)
       .toMat(Sink.ignore)(Keep.both)
@@ -183,9 +183,10 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
   private def connectionSettings(cfg: MqttConfig): MqttConnectionSettings = {
     Option(MqttConnectionSettings(
       s"${if (cfg.ssl) "ssl" else "tcp"}://${cfg.host}:${cfg.port}",
-      s"eda2mqtt-client-${System.currentTimeMillis()}",
+//      s"eda2mqtt-client-${System.currentTimeMillis()}",
+      s"eda2mqtt-client-messages",
       new MemoryPersistence()
-    ).withAutomaticReconnect(false)
+    ).withAutomaticReconnect(true)
       .withCleanSession(false)).map { v =>
       if (cfg.ssl) v.withSocketFactory(SSLContext.getDefault.getSocketFactory) else v
     }.get
@@ -194,7 +195,7 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
   private def event2Mqtt(ev: MqttMessageCmd)(implicit _btp: MqttBaseTopicProvider): Option[MqttMessage] = (ev match {
     // transform some events?
     case ev => moduleEvent2Mqtt(ev)
-  }).map(ev => ev.withTopic(s"${_btp.base}/${ev.topic}")) // prepend base topic
+  }).map(ev => ev.withTopic(s"${_btp.base}/${ev.topic}").withQos(MqttQoS.AtLeastOnce)) // prepend base topic
 
   private def moduleEvent2Mqtt(ev: MqttMessageCmd)(implicit _btp: MqttBaseTopicProvider): Option[MqttMessage] = {
     ev match {
@@ -205,12 +206,12 @@ object MqttSystem extends ActorContextImplicits with MqttPaths {
 
   private def eventToMqttMessage(event: EdaEvent): Option[MqttMessage] = {
     val value = event.message.asJson.deepDropNullValues.noSpaces
-    Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(value)).withRetained(false))
+    Some(MqttMessage(s"${edaProtocolModulePath(event.message.receiver, event.protocol)}", ByteString(value)).withQos(MqttQoS.atLeastOnce))
   }
 
   private def commandToMqttMessage(command: CommandMessage): Option[MqttMessage] = {
     val value = command.payload.deepDropNullValues.noSpaces
-    Some(MqttMessage(s"${edaCommandModulePath(command.tenant, command.command)}", ByteString(value)).withRetained(false))
+    Some(MqttMessage(s"${edaCommandModulePath(command.tenant, command.command)}", ByteString(value)).withQos(MqttQoS.atLeastOnce).withRetained(false))
   }
 
   private implicit class MqttMessageAckExt(msg: MqttMessage) {

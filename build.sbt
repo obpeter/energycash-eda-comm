@@ -1,11 +1,11 @@
 import com.typesafe.sbt.packager.docker.*
 import scalapb.GeneratorOption.*
 
-ThisBuild / version := "v0.2.1"
+ThisBuild / version := "0.2.2"
 
 ThisBuild / scalaVersion := "2.13.9"
 
-val appVersion      = "0.2.1"
+val appVersion      = "v0.2.2"
 
 lazy val emilVersion     = "0.12.0"
 lazy val akkaHttpVersion = "10.2.6"
@@ -108,12 +108,15 @@ lazy val root = (project in file("."))
 
     Test / fork := true,
 
+
   )
 
 lazy val dockerSettings = Seq(
   Docker / packageName := "eda-email-connector",
   Docker / maintainer := "vfeeg <vfeeg.org>",
-//  Docker / dockerPackageMappings += (baseDirectory.value / "src" / "universal" / "application-app.conf") -> "application-app.conf",
+  Docker / version := appVersion,
+
+    //  Docker / dockerPackageMappings += (baseDirectory.value / "src" / "universal" / "application-app.conf") -> "application-app.conf",
   dockerBaseImage := "openjdk:17-slim-buster",
 //  dockerExposedPorts := Seq(9000),
 //  Docker / daemonUserUid := None,

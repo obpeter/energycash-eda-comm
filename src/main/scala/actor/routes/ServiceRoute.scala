@@ -32,9 +32,12 @@ class ServiceRoute(fileService: FileService, messageStore: ActorRef[MessageStora
         path("upload") {
           post {
             withoutSizeLimit {
-              entity(as[Multipart.FormData]) { formData =>
-                onSuccess(fileService.handleUpload(formData, messageStore)) { results =>
-                  complete(StatusCodes.Created)
+              optionalHeaderValueByName("ecId") { ecId =>
+                entity(as[Multipart.FormData]) { formData =>
+                  println(s"ECID: $ecId")
+                  onSuccess(fileService.handleUpload(formData, messageStore, ecId)) { results =>
+                    complete(StatusCodes.Created)
+                  }
                 }
               }
             }

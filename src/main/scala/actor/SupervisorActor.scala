@@ -4,8 +4,8 @@ package actor
 import actor.TenantProvider.TenantStart
 import actor.routes.{FileService, ServiceRoute}
 import config.Config
-import mqtt.{MqttEmail, MqttSystem}
 import domain.stream.MqttRequestStream
+import mqtt.MqttSystem
 
 import akka.Done
 import akka.actor.typed.scaladsl.Behaviors
@@ -63,11 +63,7 @@ object SupervisorActor {
         Behaviors.receiveMessage {
           case Start =>
             tenantProvider ! TenantStart
-            mqttRequestStream.run(
-                MqttEmail.mqttSource,
-                createResponseSink(s"${Config.getMqttMailConfig.consumerId}-response"),
-                createResponseSink(s"${Config.getMqttMailConfig.consumerId}-response-error"))
-
+            mqttRequestStream.startCommand()
             val fileService = FileService(system, mqttPublisher)
             val routes = new ServiceRoute(fileService, messageStore)
             startHttpServer(routes.adminRoutes)
