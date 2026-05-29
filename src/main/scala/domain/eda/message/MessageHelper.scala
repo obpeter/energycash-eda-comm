@@ -4,7 +4,6 @@ package domain.eda.message
 import model.EbMsMessage
 import model.enums.EbMsMessageType._
 import model.enums.EbMsProcessType._
-import utils.zip.CRC8
 
 import com.google.common.io.BaseEncoding
 import org.slf4j.LoggerFactory
@@ -88,11 +87,7 @@ object MessageHelper {
     crc32.update(messageId.getBytes)
     val crc32Val = crc32.getValue
 
-    val crc8 = new CRC8
-    crc8.reset()
-    crc8.update(BigInt(crc32Val).toByteArray)
-
-    val compose = BigInt((crc32Val << 8) + crc8.getValue).toByteArray
+    val compose = BigInt(crc32Val).toByteArray
     BaseEncoding.base32().encode(compose.takeRight(5))
   }
 

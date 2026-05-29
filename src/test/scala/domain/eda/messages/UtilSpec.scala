@@ -12,14 +12,6 @@ import java.util.Calendar
 class UtilSpec extends AnyWordSpec with Matchers {
 
   "Checksum" should {
-    "CRC 8" in {
-      val crc8 = new CRC8
-      crc8.reset()
-      crc8.update("test".getBytes)
-
-      crc8.getValue shouldBe(181)
-    }
-
     "Calendar" in {
       val processDate = Calendar.getInstance
       processDate.set(2024, 4, 31, 0,0,0)

@@ -1,5 +1,4 @@
 import com.typesafe.sbt.packager.docker.*
-import scalapb.GeneratorOption.*
 
 ThisBuild / version := "0.2.2"
 
@@ -9,7 +8,6 @@ val appVersion      = "v0.2.2"
 
 lazy val emilVersion     = "0.12.0"
 lazy val akkaHttpVersion = "10.2.6"
-//lazy val akkaVersion     = "2.6.19"
 lazy val akkaVersion     = "2.7.0"
 lazy val courierVersion  = "3.0.1"
 lazy val alpakkaVersion  = "4.0.0"
@@ -17,7 +15,6 @@ lazy val circeVersion    = "0.14.3"
 lazy val slickVersion = "3.4.1"
 
 lazy val root = (project in file("."))
-  .enablePlugins(ScalaxbPlugin)
   .enablePlugins(JavaAppPackaging)
   .enablePlugins(AkkaGrpcPlugin)
   .settings(dockerSettings)
@@ -32,15 +29,10 @@ lazy val root = (project in file("."))
 
     akkaGrpcGeneratedSources := Seq(AkkaGrpc.Client, AkkaGrpc.Server),
 
-//    akkaGrpcCodeGeneratorSettings / target := crossTarget.value / "src_managed1" /*/ Defaults.nameForSrc(configuration.value.name)*/,
-//
-//    akkaGrpcCodeGeneratorSettings := akkaGrpcCodeGeneratorSettings.value.filterNot(_ == "flat_package"),
-
     libraryDependencies ++= Seq(
       "com.github.daddykotex" %% "courier" % courierVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "de.heikoseeberger" %% "akka-http-circe" % "1.37.0",
-//      "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
@@ -48,17 +40,12 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-serialization-jackson"  % akkaVersion,
       "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % alpakkaVersion,
       "com.lightbend.akka" %% "akka-stream-alpakka-mqtt-streaming" % alpakkaVersion,
-//      "com.enragedginger" %% "akka-quartz-scheduler" % "1.9.3-akka-2.6.x",
 
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4",
       "ch.qos.logback" % "logback-classic" % "1.2.5",
       //      "io.spray" %% "spray-json" % "1.3.6",
 
       "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
-
-//      "org.scalactic" %% "scalactic" % "3.0.8",
-//      "org.scalatest" %% "scalatest" % "3.2.14" % Test,
-//      "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
 
       "javax.xml.bind" % "jaxb-api" % "2.3.0",
       "com.sun.xml.bind" % "jaxb-core" % "2.3.0",
@@ -89,14 +76,6 @@ lazy val root = (project in file("."))
       "org.postgresql" % "postgresql" % "42.2.5"
     ),
 
-//    Compile / PB.targets := Seq(
-//      scalapb.gen(FlatPackage) -> (Compile / akkaGrpcCodeGeneratorSettings / target).value
-//    ),
-
-//    Compile / akkaGrpcCodeGeneratorSettings / target := crossTarget.value / "src_managed" / "main" / "akka-grpc",
-
-    Compile / scalaxb / scalaxbPackageName := "xmlprotocol",
-
     Compile / managedSourceDirectories ++= Seq(
       target.value / "scala-2.13" / "akka-grpc" / "main",
       target.value / "scala-2.13" / "src_managed" / "main"
@@ -104,11 +83,7 @@ lazy val root = (project in file("."))
 
     Test / javaOptions ++= Seq(s"-Dconfig.file=${sourceDirectory.value}/test/resources/application-test.conf"),
 
-//    Test / resourceDirectory := baseDirectory.value / "test-resources",
-
     Test / fork := true,
-
-
   )
 
 lazy val dockerSettings = Seq(
@@ -116,11 +91,7 @@ lazy val dockerSettings = Seq(
   Docker / maintainer := "vfeeg <vfeeg.org>",
   Docker / version := appVersion,
 
-    //  Docker / dockerPackageMappings += (baseDirectory.value / "src" / "universal" / "application-app.conf") -> "application-app.conf",
   dockerBaseImage := "openjdk:17-slim-buster",
-//  dockerExposedPorts := Seq(9000),
-//  Docker / daemonUserUid := None,
-//  Docker / daemonUser := "daemon",
   dockerExposedVolumes := Seq("/conf"),
   dockerExposedVolumes := Seq("/storage/prod"),
   dockerRepository := Some("ghcr.io"),
@@ -132,7 +103,6 @@ lazy val dockerSettings = Seq(
     case cmd => false
   },
   dockerCommands ++= Seq(
-//    Cmd("ADD", "application-app.conf", "/conf/application.conf"),
     Cmd("LABEL", s"""version="${appVersion}""""),
     ExecCmd("CMD", "/opt/docker/bin/emailclient", "-Dconfig.file=/conf/application.conf")
   ),
